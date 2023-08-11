@@ -10,48 +10,23 @@ class Scenario {
 
   RandomGenerator r;
 
+  DecisionRule dr;
   double payoffProbability;
   double utilityDifference;
   int decisionRuleIndex;
-  DecisionRule dr;
+  int n; // Number of alternatives
   int m; // Number of individuals
-  int m0; // Number of individuals in type 0
-  int m1; // Number of individuals in type 1
-  int g0;
-  int g1;
+  int g; // Length of prejoin experience
 
   double[][] beliefNumerator; //230731 Change into double to accommodate Henning's Request. It might be computationally costly.
   double[][] beliefDenominator;
   double[][] belief;
-  double[][] belief0;
-  double[][] expectedUtility;
+  double[] pSuccess; // 6 arms; 123 low 456 high success rate
 
-  int[] typeOf; // n;
-
-  double[] armPSuccess; // 6 arms; 123 low 456 high success rate
-  double[][] armValueDimension; // 6 arms by 2 dimensions; 123 low 456 high success rate.
-  int[] armFavor; // 6 arms; which group it favors
-  double[][] utility; // individual's utility from each arm; k, n
-
-  int winningCoalitionDecision; // Most popular
-  int organizationalDecision; // By decision structure
-  int winningCoalitionNVoteByType0;
-  int winningCoalitionNVoteByType1;
   int[] individualDecision;
-  boolean isSuccessful;
-
-  boolean isConsensus;
-  boolean isConsensusType0;
-  boolean isConsensusType1;
-  boolean isPerfect;
-  boolean isPerfectType0;
-  boolean isPerfectType1;
-  boolean isHomogeneousCoalition;
-  boolean isHomogenousCoalitionType0;
-  boolean isHomogenousCoalitionType1;
-
-  int nVoteAgainstPreferenceType0;
-  int nVoteAgainstPreferenceType1;
+  int organizationalDecision;
+  boolean[] isSuccessfulIndividual;
+  boolean[] isSuccessfulOrganization;
 
   double[][] falsePositive;
   double[][] falseNegative;
@@ -59,24 +34,14 @@ class Scenario {
   int[] armIndexArray;
   int[] memberIndexArray;
 
-  boolean[] isAssimilated;
-  boolean[] wasAssimilated;
-
-  double vote2Win00;
-  double vote2Win01;
-  double vote2Win10;
-  double vote2Win11;
-
-  double averageUtility;
-
   Scenario(
       double payoffProbability,
       double utilityDifference,
       int decisionRuleIndex,
-      int m0,
-      int m1,
-      int g0,
-      int g1) {
+      int n,
+      int m,
+      int g
+  ) {
     r = new MersenneTwister();
 
     this.payoffProbability = payoffProbability;
@@ -120,12 +85,12 @@ class Scenario {
   }
 
   void initializeTaskEnvironment() {
-    armPSuccess = new double[Main.N];
+    pSuccess = new double[Main.N];
     armValueDimension = new double[Main.N][2];
     armFavor = new int[Main.N];
 
     for (int p = 0; p < Main.N; p++) {
-      armPSuccess[p] = payoffProbability;
+      pSuccess[p] = payoffProbability;
     }
 
     armFavor[0] = 0; // Male
@@ -189,7 +154,7 @@ class Scenario {
     for (int individual : memberIndexArray) {
       double[] beliefNumeratorIndividual = beliefNumerator[individual];
       double[] beliefDenominatorIndividual = beliefDenominator[individual];
-      int prejoinExperience = typeOf[individual]==0?g0:g1;
+      int prejoinExperience = typeOf[individual] == 0 ? g0 : g1;
       if (Main.IS_INITIAL_RANDOM) {
         for (int choice : armIndexArray) {
           beliefNumeratorIndividual[choice] = r.nextInt(3);
@@ -203,7 +168,7 @@ class Scenario {
         }
       }
       if (Main.IS_PREJOIN_GREEDY) {
-        for( int choice : armIndexArray ){
+        for (int choice : armIndexArray) {
           if (beliefDenominatorIndividual[choice] != 0) {
             belief[individual][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
           } else {
@@ -212,7 +177,7 @@ class Scenario {
         }
         for (int prejoin = 0; prejoin < prejoinExperience; prejoin++) {
           int choice = transformBelief2Message(belief[individual], utility[typeOf[individual]]);
-          if (r.nextDouble() < armPSuccess[choice]) {
+          if (r.nextDouble() < pSuccess[choice]) {
             beliefNumeratorIndividual[choice]++;
           }
           beliefDenominatorIndividual[choice]++;
@@ -221,7 +186,7 @@ class Scenario {
       } else {
         for (int prejoin = 0; prejoin < prejoinExperience; prejoin++) {
           int choice = r.nextInt(Main.N);
-          if (r.nextDouble() < armPSuccess[choice]) {
+          if (r.nextDouble() < pSuccess[choice]) {
             beliefNumeratorIndividual[choice]++;
           }
           beliefDenominatorIndividual[choice]++;
@@ -280,7 +245,7 @@ class Scenario {
   }
 
   void setSuccess() {
-    isSuccessful = r.nextDouble() < armPSuccess[organizationalDecision];
+    isSuccessful = r.nextDouble() < pSuccess[organizationalDecision];
   }
 
   void setOutcome() {
@@ -387,7 +352,7 @@ class Scenario {
 
     for (int individual : memberIndexArray) {
       for (int arm : armIndexArray) {
-        double deviation = belief[individual][arm] - armPSuccess[arm];
+        double deviation = belief[individual][arm] - pSuccess[arm];
         if (deviation > 0) {
           falsePositive[individual][arm] = deviation;
         } else {
