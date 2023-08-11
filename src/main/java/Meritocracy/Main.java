@@ -5,45 +5,15 @@ public class Main {
 
   static final long TIC = System.currentTimeMillis();
 
-  static final boolean IS_DU1 = false;
   static final boolean IS_GREEDY = true;
-  static final boolean IS_LEARNING = true;
   static final boolean IS_INITIAL_RANDOM = true;
   static final boolean IS_PREJOIN_GREEDY = true;
 
   static final int ITERATION = 10_000;
   static final int TIME = 100 + 1;
 
-  static final int[][] COMPOSITION = new int[][]{
-      {7, 1},
-      {6, 2},
-      {5, 3},
-      {4, 4},
-      {3, 5},
-      {2, 6},
-      {1, 7}
-  };
-
-  static int MAX_M = 8;
-//    static int MAX_M = 16;
-
-//    static int[] WEIGHTED_VOTING_COMPOSITION = new int[]{4,4};
-
-  static final int M_LENGTH = COMPOSITION.length;
-  static final int[] M = new int[COMPOSITION.length];
-  static final int[] M0 = new int[COMPOSITION.length];
-  static final int[] M1 = new int[COMPOSITION.length];
-  //Arms
-//    static int G = 1; // Prejoin Learning
-  static final int[][] G = new int[][]{
-      {0, 0},
-      {5, 0},
-      {100, 0},
-      {5, 5},
-      {5, 100},
-      {100, 100}
-  };
-  static final int G_LENGTH = G.length;
+  static final int N = 5; // Number of alternatives
+  static final int M = 5; // Number of individuals
 
   static final double TAU = .01;
   static final int DECISION_STRUCTURE_LENGTH = 5;
@@ -62,8 +32,6 @@ public class Main {
 
   static String LABEL = "DG_";
   static String PARAMS = ""
-      + "IsD1" + IS_DU1
-      + "Learning" + IS_LEARNING
       + "Greed" + IS_GREEDY
       + "InitRand" + IS_INITIAL_RANDOM
       + "PreGreed" + IS_PREJOIN_GREEDY
