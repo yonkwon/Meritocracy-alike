@@ -1,2 +1,3 @@
 # Meritocracy-alike
-Test
+
+A computational model for the "Meritcracy-alike" idea
