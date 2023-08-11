@@ -1,9 +1,9 @@
-package MC230810FirstTrial;
+package Meritocracy;
 
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class FTComputationBelief {
+public class ComputationBelief {
 
   String fileName = "NUBelief_";
   int iteration = 10000;
@@ -18,9 +18,9 @@ public class FTComputationBelief {
   double utilityDifference = .25;
 
   FileWriter csv;
-  FTScenario s;
+  Scenario s;
 
-  FTComputationBelief() throws IOException {
+  ComputationBelief() throws IOException {
     fileName = fileName
         + "i" + iteration
         + "t" + time
@@ -35,7 +35,7 @@ public class FTComputationBelief {
         s = new FTScenarioSoloWoman(payoffProbability, utilityDifference, m0, m1, g0, g1);
       } else {
         s =
-            new FTScenario(
+            new Scenario(
                 payoffProbability,
                 utilityDifference,
                 dr,

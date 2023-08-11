@@ -1,4 +1,4 @@
-package MC230810FirstTrial;
+package Meritocracy;
 
 import static org.apache.commons.math3.util.FastMath.exp;
 import static org.apache.commons.math3.util.FastMath.max;
@@ -6,7 +6,7 @@ import static org.apache.commons.math3.util.FastMath.max;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 
-class FTScenario {
+class Scenario {
 
   RandomGenerator r;
 
@@ -69,7 +69,7 @@ class FTScenario {
 
   double averageUtility;
 
-  FTScenario(
+  Scenario(
       double payoffProbability,
       double utilityDifference,
       int decisionRuleIndex,
@@ -91,8 +91,8 @@ class FTScenario {
     setDecisionRule(decisionRuleIndex);
 
     individualDecision = new int[m];
-    armIndexArray = new int[FTMain.N];
-    for (int choice = 0; choice < FTMain.N; choice++) {
+    armIndexArray = new int[Main.N];
+    for (int choice = 0; choice < Main.N; choice++) {
       armIndexArray[choice] = choice;
     }
     memberIndexArray = new int[m];
@@ -120,11 +120,11 @@ class FTScenario {
   }
 
   void initializeTaskEnvironment() {
-    armPSuccess = new double[FTMain.N];
-    armValueDimension = new double[FTMain.N][2];
-    armFavor = new int[FTMain.N];
+    armPSuccess = new double[Main.N];
+    armValueDimension = new double[Main.N][2];
+    armFavor = new int[Main.N];
 
-    for (int p = 0; p < FTMain.N; p++) {
+    for (int p = 0; p < Main.N; p++) {
       armPSuccess[p] = payoffProbability;
     }
 
@@ -134,7 +134,7 @@ class FTScenario {
 
   void initializePreference() {
     typeOf = new int[m];
-    utility = new double[2][FTMain.N];
+    utility = new double[2][Main.N];
 
     for (int individual = 0; individual < m0; individual++) {
       typeOf[individual] = 0;
@@ -146,7 +146,7 @@ class FTScenario {
     double utilMin = (1D - utilityDifference) / 2;
     double utilMax = utilMin + utilityDifference;
 
-    if (FTMain.IS_DU1) {
+    if (Main.IS_DU1) {
       utilMin = 1D - utilityDifference / 2D;
       utilMax = utilMin + utilityDifference;
     }
@@ -178,10 +178,10 @@ class FTScenario {
     // 0, then individuals’ initial beliefs at the start of
     // organizational decision making are identical and un-
     // informed.
-    beliefNumerator = new double[m][FTMain.N];
-    beliefDenominator = new double[m][FTMain.N];
-    belief = new double[m][FTMain.N];
-    expectedUtility = new double[m][FTMain.N];
+    beliefNumerator = new double[m][Main.N];
+    beliefDenominator = new double[m][Main.N];
+    belief = new double[m][Main.N];
+    expectedUtility = new double[m][Main.N];
     belief0 = new double[m][];
     isAssimilated = new boolean[m];
     wasAssimilated = new boolean[m];
@@ -190,7 +190,7 @@ class FTScenario {
       double[] beliefNumeratorIndividual = beliefNumerator[individual];
       double[] beliefDenominatorIndividual = beliefDenominator[individual];
       int prejoinExperience = typeOf[individual]==0?g0:g1;
-      if (FTMain.IS_INITIAL_RANDOM) {
+      if (Main.IS_INITIAL_RANDOM) {
         for (int choice : armIndexArray) {
           beliefNumeratorIndividual[choice] = r.nextInt(3);
           beliefDenominatorIndividual[choice] = 2D;
@@ -202,7 +202,7 @@ class FTScenario {
           beliefDenominatorIndividual[choice] = 2D;
         }
       }
-      if (FTMain.IS_PREJOIN_GREEDY) {
+      if (Main.IS_PREJOIN_GREEDY) {
         for( int choice : armIndexArray ){
           if (beliefDenominatorIndividual[choice] != 0) {
             belief[individual][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
@@ -220,7 +220,7 @@ class FTScenario {
         }
       } else {
         for (int prejoin = 0; prejoin < prejoinExperience; prejoin++) {
-          int choice = r.nextInt(FTMain.N);
+          int choice = r.nextInt(Main.N);
           if (r.nextDouble() < armPSuccess[choice]) {
             beliefNumeratorIndividual[choice]++;
           }
@@ -247,7 +247,7 @@ class FTScenario {
     setIndividualDecision();
     setOrganizationalDecision();
     setSuccess();
-    if (FTMain.IS_LEARNING) {
+    if (Main.IS_LEARNING) {
       doIndividualLearning();
     }
   }
@@ -294,8 +294,8 @@ class FTScenario {
     isHomogenousCoalitionType0 = false;
     isHomogenousCoalitionType1 = false;
     winningCoalitionDecision = organizationalDecision; //@ 220520 Fix
-    falsePositive = new double[m][FTMain.N];
-    falseNegative = new double[m][FTMain.N];
+    falsePositive = new double[m][Main.N];
+    falseNegative = new double[m][Main.N];
     averageUtility = 0;
     if (isSuccessful) {
       for (int individual : memberIndexArray) {
@@ -446,7 +446,7 @@ class FTScenario {
 
   int transformBelief2Message(double[] belief, double[] utility) {
     int message = -1;
-    if (FTMain.IS_GREEDY) {
+    if (Main.IS_GREEDY) {
       double bestExpectedValue = Double.MIN_VALUE;
       shuffleFisherYates(armIndexArray);
       for (int choice : armIndexArray) {
@@ -457,12 +457,12 @@ class FTScenario {
         }
       }
       if (message == -1) {
-        message = r.nextInt(FTMain.N);
+        message = r.nextInt(Main.N);
       }
     } else {
       double[] probability = transformBelief2Probability(belief, utility);
       double random = r.nextDouble();
-      for (int choice = 0; choice < FTMain.N; choice++) {
+      for (int choice = 0; choice < Main.N; choice++) {
         if (random <= probability[choice]) {
           message = choice;
           break;
@@ -477,11 +477,11 @@ class FTScenario {
     double denominator = 0;
     for (int choice : armIndexArray) {
       probability[choice] = probability[choice] * utility[choice];
-      probability[choice] = exp(probability[choice] / FTMain.TAU);
+      probability[choice] = exp(probability[choice] / Main.TAU);
       denominator += probability[choice];
     }
     probability[0] /= denominator;
-    for (int choice = 1; choice < FTMain.N; choice++) {
+    for (int choice = 1; choice < Main.N; choice++) {
       probability[choice] /= denominator;
       probability[choice] += probability[choice - 1];
     }
@@ -531,7 +531,7 @@ class FTScenario {
       //Assume Plurality Voting
       int decision = -1;
       int maxCount = Integer.MIN_VALUE;
-      int[] countMessage = new int[FTMain.N];
+      int[] countMessage = new int[Main.N];
       for (int individual : memberIndexArray) {
         countMessage[individualDecision[individual]]++;
       }
@@ -566,7 +566,7 @@ class FTScenario {
     public int decide() {
       int decision = -1;
       double maxCount = Double.MIN_VALUE;
-      double[] countMessage = new double[FTMain.N];
+      double[] countMessage = new double[Main.N];
       for (int individual : memberIndexArray) {
         countMessage[individualDecision[individual]]++;
       }
@@ -596,7 +596,7 @@ class FTScenario {
     public int decide() {
       int decision = -1;
       double maxCount = Double.MIN_VALUE;
-      double[] countMessage = new double[FTMain.N];
+      double[] countMessage = new double[Main.N];
       for (int individual : memberIndexArray) {
         if (typeOf[individual] == 0) {
           countMessage[individualDecision[individual]] += m1;
@@ -638,8 +638,8 @@ class FTScenario {
 
       double maxCountType0 = Double.MIN_VALUE;
       double maxCountType1 = Double.MIN_VALUE;
-      double[] countMessageType0 = new double[FTMain.N];
-      double[] countMessageType1 = new double[FTMain.N];
+      double[] countMessageType0 = new double[Main.N];
+      double[] countMessageType1 = new double[Main.N];
       for (int individual : memberIndexArray) {
         if (typeOf[individual] == 0) {
           countMessageType0[individualDecision[individual]] += 1D;
@@ -690,8 +690,8 @@ class FTScenario {
 
       double maxCountType0 = Double.MIN_VALUE;
       double maxCountType1 = Double.MIN_VALUE;
-      double[] countMessageType0 = new double[FTMain.N];
-      double[] countMessageType1 = new double[FTMain.N];
+      double[] countMessageType0 = new double[Main.N];
+      double[] countMessageType1 = new double[Main.N];
       for (int individual : memberIndexArray) {
         if (typeOf[individual] == 0) {
           countMessageType0[individualDecision[individual]] += 1D;

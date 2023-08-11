@@ -1,7 +1,7 @@
-package MC230810FirstTrial;
+package Meritocracy;
 
-public class FTMain {
-  static final String ID = "MC230810FT";
+public class Main {
+  static final String ID = "Meritocracy";
 
   static final long TIC = System.currentTimeMillis();
 
@@ -14,15 +14,6 @@ public class FTMain {
   static final int ITERATION = 10_000;
   static final int TIME = 100 + 1;
 
-  //Individual Members
-//  static final int[][] COMPOSITION = new int[][]{
-//      {5, 1},
-//      {4, 2},
-//      {3, 3},
-//      {2, 4},
-//      {1, 5}
-//  };
-
   static final int[][] COMPOSITION = new int[][]{
       {7, 1},
       {6, 2},
@@ -32,26 +23,6 @@ public class FTMain {
       {2, 6},
       {1, 7}
   };
-
-//  static final int[][] COMPOSITION = new int[][]{
-//      {4, 1},
-//      {4, 2},
-//      {4, 3},
-//      {4, 4},
-//      {3, 4},
-//      {2, 4},
-//      {1, 4}
-//  };
-
-//  static final int[][] COMPOSITION = new int[][]{
-//      {8, 2},
-//      {8, 4},
-//      {8, 6},
-//      {8, 8},
-//      {6, 8},
-//      {4, 8},
-//      {2, 8}
-//  };
 
   static int MAX_M = 8;
 //    static int MAX_M = 16;
@@ -119,8 +90,8 @@ public class FTMain {
   // on their choices.
 
   public static void main(String[] args) {
-    FTComputation c = new FTComputation();
-    new FTMatWriter(c);
+    Computation c = new Computation();
+    new MatWriter(c);
 
 //        try {
 //            new FTComputationBelief();

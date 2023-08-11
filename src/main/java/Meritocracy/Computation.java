@@ -1,4 +1,4 @@
-package MC230810FirstTrial;
+package Meritocracy;
 
 import static org.apache.commons.math3.util.FastMath.pow;
 
@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 
-public class FTComputation {
+public class Computation {
 
   ExecutorService workStealingPool;
   RandomGenerator r;
@@ -100,12 +100,12 @@ public class FTComputation {
 
   ProgressBar pb;
 
-  FTComputation() {
+  Computation() {
     fillParameterArray();
 
     r = new MersenneTwister();
     workStealingPool = Executors.newWorkStealingPool();
-    pb = new ProgressBar("Full Experiment: Computation", FTMain.ITERATION);
+    pb = new ProgressBar("Full Experiment: Computation", Main.ITERATION);
 
     setResultSpace();
     runFullExperiment();
@@ -113,15 +113,15 @@ public class FTComputation {
   }
 
   private void fillParameterArray() {
-    for (int m = 0; m < FTMain.M_LENGTH; m++) {
-      FTMain.M0[m] = FTMain.COMPOSITION[m][0];
-      FTMain.M1[m] = FTMain.COMPOSITION[m][1];
-      FTMain.M[m] = FTMain.M0[m] + FTMain.M1[m];
+    for (int m = 0; m < Main.M_LENGTH; m++) {
+      Main.M0[m] = Main.COMPOSITION[m][0];
+      Main.M1[m] = Main.COMPOSITION[m][1];
+      Main.M[m] = Main.M0[m] + Main.M1[m];
     }
   }
 
   private void runFullExperiment() {
-    for (int iteration = 0; iteration < FTMain.ITERATION; iteration++) {
+    for (int iteration = 0; iteration < Main.ITERATION; iteration++) {
       experimentWrapper experimentWrap = new experimentWrapper();
       workStealingPool.execute(experimentWrap);
     }
@@ -134,57 +134,57 @@ public class FTComputation {
   }
 
   void setResultSpace() {
-    consensusShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    consensusType0ShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    consensusType1ShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    perfectShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    perfectType0ShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];perfectType1ShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    mixedCoalitionShareAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    consensusShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    consensusType0ShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    consensusType1ShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    perfectShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    perfectType0ShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];perfectType1ShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    mixedCoalitionShareAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    decisionAgainstPreferenceAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][2];
-    decisionAgainstPreferenceSTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][2];
-    choiceRateAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N];
-    choiceRateSTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N];
-    choiceRateIndAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    choiceRateIndSTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
+    decisionAgainstPreferenceAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][2];
+    decisionAgainstPreferenceSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][2];
+    choiceRateAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N];
+    choiceRateSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N];
+    choiceRateIndAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    choiceRateIndSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
 
-    falsePositiveAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falsePositiveSTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falsePositiveCNTAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
+    falsePositiveAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falsePositiveSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falsePositiveCNTAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
 
-    falseNegativeAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falseNegativeSTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falseNegativeCNTAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
+    falseNegativeAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falseNegativeSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falseNegativeCNTAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
 
-    winningCoalitionNVoteByTypeCNTAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N][][];
+    winningCoalitionNVoteByTypeCNTAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N][][];
 
-    vote2Win00AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win00STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win01AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win01STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win10AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win10STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win11AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win11STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    vote2Win00AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win00STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win01AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win01STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win10AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win10STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win11AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win11STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    organizationalDecision0AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision0STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision1AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision1STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote0AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote0STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote1AVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote1STDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    organizationalDecision0AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision0STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision1AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision1STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote0AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote0STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote1AVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote1STDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    utilityAVGAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    utilitySTDAtomic = new AtomicDouble[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    utilityAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    utilitySTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    for (int dp = 0; dp < FTMain.P_LENGTH; dp++) {
-      for (int du = 0; du < FTMain.DELTA_U_LENGTH; du++) {
-        for (int dr = 0; dr < FTMain.DECISION_STRUCTURE_LENGTH; dr++) {
-          for (int m = 0; m < FTMain.M_LENGTH; m++) {
-            for (int g = 0; g < FTMain.G_LENGTH; g++) {
-              for (int t = 0; t < FTMain.TIME; t++) {
+    for (int dp = 0; dp < Main.P_LENGTH; dp++) {
+      for (int du = 0; du < Main.DELTA_U_LENGTH; du++) {
+        for (int dr = 0; dr < Main.DECISION_STRUCTURE_LENGTH; dr++) {
+          for (int m = 0; m < Main.M_LENGTH; m++) {
+            for (int g = 0; g < Main.G_LENGTH; g++) {
+              for (int t = 0; t < Main.TIME; t++) {
                 decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][0] = new AtomicDouble();
                 decisionAgainstPreferenceSTDAtomic[dr][dp][du][m][g][t][0] = new AtomicDouble();
                 decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][1] = new AtomicDouble();
@@ -196,14 +196,14 @@ public class FTComputation {
                 perfectType0ShareAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
                 perfectType1ShareAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
                 mixedCoalitionShareAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
-                choiceRateIndAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                choiceRateIndSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falsePositiveAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falsePositiveSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falsePositiveCNTAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falseNegativeAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falseNegativeSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
-                falseNegativeCNTAtomic[dr][dp][du][m][g][t] = new AtomicDouble[FTMain.MAX_M][FTMain.N];
+                choiceRateIndAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                choiceRateIndSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falsePositiveAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falsePositiveSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falsePositiveCNTAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falseNegativeAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falseNegativeSTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
+                falseNegativeCNTAtomic[dr][dp][du][m][g][t] = new AtomicDouble[Main.MAX_M][Main.N];
 
                 vote2Win00AVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
                 vote2Win00STDAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
@@ -226,13 +226,13 @@ public class FTComputation {
                 utilityAVGAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
                 utilitySTDAtomic[dr][dp][du][m][g][t] = new AtomicDouble();
 
-                for (int choice = 0; choice < FTMain.N; choice++) {
+                for (int choice = 0; choice < Main.N; choice++) {
                   choiceRateAVGAtomic[dr][dp][du][m][g][t][choice] = new AtomicDouble();
                   choiceRateSTDAtomic[dr][dp][du][m][g][t][choice] = new AtomicDouble();
                   winningCoalitionNVoteByTypeCNTAtomic[dr][dp][du][m][g][t][choice] =
 //                  new AtomicDouble[FTMain.M0[m] + 1][FTMain.M1[m] + 1];
-                      new AtomicDouble[FTMain.MAX_M + 1][FTMain.MAX_M + 1];
-                  for (int member = 0; member < FTMain.MAX_M; member++) {
+                      new AtomicDouble[Main.MAX_M + 1][Main.MAX_M + 1];
+                  for (int member = 0; member < Main.MAX_M; member++) {
                     choiceRateIndAVGAtomic[dr][dp][du][m][g][t][member][choice] = new AtomicDouble();
                     choiceRateIndSTDAtomic[dr][dp][du][m][g][t][member][choice] = new AtomicDouble();
                     falsePositiveAVGAtomic[dr][dp][du][m][g][t][member][choice] = new AtomicDouble();
@@ -242,8 +242,8 @@ public class FTComputation {
                     falseNegativeSTDAtomic[dr][dp][du][m][g][t][member][choice] = new AtomicDouble();
                     falseNegativeCNTAtomic[dr][dp][du][m][g][t][member][choice] = new AtomicDouble();
                   }
-                  for (int type1 = 0; type1 < FTMain.MAX_M + 1; type1++) {
-                    for (int type2 = 0; type2 < FTMain.MAX_M + 1; type2++) {
+                  for (int type1 = 0; type1 < Main.MAX_M + 1; type1++) {
+                    for (int type2 = 0; type2 < Main.MAX_M + 1; type2++) {
                       winningCoalitionNVoteByTypeCNTAtomic[dr][dp][du][m][g][t][choice][type1][type2] =
                           new AtomicDouble();
                     }
@@ -256,125 +256,125 @@ public class FTComputation {
       }
     }
 
-    consensusShare = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    consensusType0Share = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    consensusType1Share = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    perfectShare = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    perfectType0Share = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    perfectType1Share = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    mixedCoalitionShare = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    consensusShare = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    consensusType0Share = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    consensusType1Share = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    perfectShare = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    perfectType0Share = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    perfectType1Share = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    mixedCoalitionShare = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    decisionAgainstPreferenceAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][2];
-    decisionAgainstPreferenceSTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][2];
-    choiceRateAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N];
-    choiceRateSTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N];
-    choiceRateIndAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    choiceRateIndSTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falsePositiveAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falsePositiveSTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falsePositiveCNT = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falseNegativeAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falseNegativeSTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
-    falseNegativeCNT = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][][];
+    decisionAgainstPreferenceAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][2];
+    decisionAgainstPreferenceSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][2];
+    choiceRateAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N];
+    choiceRateSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N];
+    choiceRateIndAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    choiceRateIndSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falsePositiveAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falsePositiveSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falsePositiveCNT = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falseNegativeAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falseNegativeSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
+    falseNegativeCNT = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][][];
 
-    winningCoalitionNVoteByTypeCNT = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME][FTMain.N][][];
+    winningCoalitionNVoteByTypeCNT = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME][Main.N][][];
 
-    vote2Win00AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win00STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win01AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win01STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win10AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win10STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win11AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    vote2Win11STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    vote2Win00AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win00STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win01AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win01STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win10AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win10STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win11AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    vote2Win11STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    organizationalDecision0AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision0STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision1AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    organizationalDecision1STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote0AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote0STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote1AVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    femaleVote1STD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    organizationalDecision0AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision0STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision1AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    organizationalDecision1STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote0AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote0STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote1AVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    femaleVote1STD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
 
-    utilityAVG = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
-    utilitySTD = new double[FTMain.DECISION_STRUCTURE_LENGTH][FTMain.P_LENGTH][FTMain.DELTA_U_LENGTH][FTMain.M_LENGTH][FTMain.G_LENGTH][FTMain.TIME];
+    utilityAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
+    utilitySTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.P_LENGTH][Main.DELTA_U_LENGTH][Main.M_LENGTH][Main.G_LENGTH][Main.TIME];
   }
 
   private void averageFullExperiment() {
-    for (int dr = 0; dr < FTMain.DECISION_STRUCTURE_LENGTH; dr++) {
-      for (int dp = 0; dp < FTMain.P_LENGTH; dp++) {
-        for (int du = 0; du < FTMain.DELTA_U_LENGTH; du++) {
-          for (int m = 0; m < FTMain.M_LENGTH; m++) {
-            for (int g = 0; g < FTMain.G_LENGTH; g++) {
-              for (int t = 0; t < FTMain.TIME; t++) {
+    for (int dr = 0; dr < Main.DECISION_STRUCTURE_LENGTH; dr++) {
+      for (int dp = 0; dp < Main.P_LENGTH; dp++) {
+        for (int du = 0; du < Main.DELTA_U_LENGTH; du++) {
+          for (int m = 0; m < Main.M_LENGTH; m++) {
+            for (int g = 0; g < Main.G_LENGTH; g++) {
+              for (int t = 0; t < Main.TIME; t++) {
                 consensusShare[dr][dp][du][m][g][t] =
-                    consensusShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    consensusShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 consensusType0Share[dr][dp][du][m][g][t] =
-                    consensusType0ShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    consensusType0ShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 consensusType1Share[dr][dp][du][m][g][t] =
-                    consensusType1ShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    consensusType1ShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 perfectShare[dr][dp][du][m][g][t] =
-                    perfectShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    perfectShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 perfectType0Share[dr][dp][du][m][g][t] =
-                    perfectType0ShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    perfectType0ShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 perfectType1Share[dr][dp][du][m][g][t] =
-                    perfectType1ShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    perfectType1ShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
                 mixedCoalitionShare[dr][dp][du][m][g][t] =
-                    mixedCoalitionShareAtomic[dr][dp][du][m][g][t].get() / (double) FTMain.ITERATION;
+                    mixedCoalitionShareAtomic[dr][dp][du][m][g][t].get() / (double) Main.ITERATION;
 
-                decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][0] = decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][0].get() / FTMain.ITERATION;
-                decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][0] = decisionAgainstPreferenceSTDAtomic[dr][dp][du][m][g][t][0].get() / FTMain.ITERATION;
+                decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][0] = decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][0].get() / Main.ITERATION;
+                decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][0] = decisionAgainstPreferenceSTDAtomic[dr][dp][du][m][g][t][0].get() / Main.ITERATION;
                 decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][0] = pow(decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][0] - pow(decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][0], 2), .5);
-                decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][1] = decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][1].get() / FTMain.ITERATION;
-                decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][1] = decisionAgainstPreferenceSTDAtomic[dr][dp][du][m][g][t][1].get() / FTMain.ITERATION;
+                decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][1] = decisionAgainstPreferenceAVGAtomic[dr][dp][du][m][g][t][1].get() / Main.ITERATION;
+                decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][1] = decisionAgainstPreferenceSTDAtomic[dr][dp][du][m][g][t][1].get() / Main.ITERATION;
                 decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][1] = pow(decisionAgainstPreferenceSTD[dr][dp][du][m][g][t][1] - pow(decisionAgainstPreferenceAVG[dr][dp][du][m][g][t][1], 2), .5);
 
-                choiceRateIndAVG[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                choiceRateIndSTD[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falsePositiveAVG[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falsePositiveSTD[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falsePositiveCNT[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falseNegativeAVG[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falseNegativeSTD[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
-                falseNegativeCNT[dr][dp][du][m][g][t] = new double[FTMain.M[m]][FTMain.N];
+                choiceRateIndAVG[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                choiceRateIndSTD[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falsePositiveAVG[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falsePositiveSTD[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falsePositiveCNT[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falseNegativeAVG[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falseNegativeSTD[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
+                falseNegativeCNT[dr][dp][du][m][g][t] = new double[Main.M[m]][Main.N];
 
-                vote2Win00AVG[dr][dp][du][m][g][t] = vote2Win00AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                vote2Win00STD[dr][dp][du][m][g][t] = vote2Win00STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                vote2Win00AVG[dr][dp][du][m][g][t] = vote2Win00AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                vote2Win00STD[dr][dp][du][m][g][t] = vote2Win00STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 vote2Win00STD[dr][dp][du][m][g][t] = pow(vote2Win00STD[dr][dp][du][m][g][t] - pow(vote2Win00AVG[dr][dp][du][m][g][t], 2), .5);
-                vote2Win01AVG[dr][dp][du][m][g][t] = vote2Win01AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                vote2Win01STD[dr][dp][du][m][g][t] = vote2Win01STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                vote2Win01AVG[dr][dp][du][m][g][t] = vote2Win01AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                vote2Win01STD[dr][dp][du][m][g][t] = vote2Win01STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 vote2Win01STD[dr][dp][du][m][g][t] = pow(vote2Win01STD[dr][dp][du][m][g][t] - pow(vote2Win01AVG[dr][dp][du][m][g][t], 2), .5);
-                vote2Win10AVG[dr][dp][du][m][g][t] = vote2Win10AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                vote2Win10STD[dr][dp][du][m][g][t] = vote2Win10STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                vote2Win10AVG[dr][dp][du][m][g][t] = vote2Win10AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                vote2Win10STD[dr][dp][du][m][g][t] = vote2Win10STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 vote2Win10STD[dr][dp][du][m][g][t] = pow(vote2Win10STD[dr][dp][du][m][g][t] - pow(vote2Win10AVG[dr][dp][du][m][g][t], 2), .5);
-                vote2Win11AVG[dr][dp][du][m][g][t] = vote2Win11AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                vote2Win11STD[dr][dp][du][m][g][t] = vote2Win11STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                vote2Win11AVG[dr][dp][du][m][g][t] = vote2Win11AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                vote2Win11STD[dr][dp][du][m][g][t] = vote2Win11STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 vote2Win11STD[dr][dp][du][m][g][t] = pow(vote2Win11STD[dr][dp][du][m][g][t] - pow(vote2Win11AVG[dr][dp][du][m][g][t], 2), .5);
 
-                organizationalDecision0AVG[dr][dp][du][m][g][t] = organizationalDecision0AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                organizationalDecision0STD[dr][dp][du][m][g][t] = organizationalDecision0STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                organizationalDecision0AVG[dr][dp][du][m][g][t] = organizationalDecision0AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                organizationalDecision0STD[dr][dp][du][m][g][t] = organizationalDecision0STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 organizationalDecision0STD[dr][dp][du][m][g][t] = pow(organizationalDecision0STD[dr][dp][du][m][g][t] - pow(organizationalDecision0AVG[dr][dp][du][m][g][t], 2), .5);
-                organizationalDecision1AVG[dr][dp][du][m][g][t] = organizationalDecision1AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                organizationalDecision1STD[dr][dp][du][m][g][t] = organizationalDecision1STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                organizationalDecision1AVG[dr][dp][du][m][g][t] = organizationalDecision1AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                organizationalDecision1STD[dr][dp][du][m][g][t] = organizationalDecision1STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 organizationalDecision1STD[dr][dp][du][m][g][t] = pow(organizationalDecision1STD[dr][dp][du][m][g][t] - pow(organizationalDecision1AVG[dr][dp][du][m][g][t], 2), .5);
-                femaleVote0AVG[dr][dp][du][m][g][t] = femaleVote0AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                femaleVote0STD[dr][dp][du][m][g][t] = femaleVote0STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                femaleVote0AVG[dr][dp][du][m][g][t] = femaleVote0AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                femaleVote0STD[dr][dp][du][m][g][t] = femaleVote0STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 femaleVote0STD[dr][dp][du][m][g][t] = pow(femaleVote0STD[dr][dp][du][m][g][t] - pow(femaleVote0AVG[dr][dp][du][m][g][t], 2), .5);
-                femaleVote1AVG[dr][dp][du][m][g][t] = femaleVote1AVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                femaleVote1STD[dr][dp][du][m][g][t] = femaleVote1STDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                femaleVote1AVG[dr][dp][du][m][g][t] = femaleVote1AVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                femaleVote1STD[dr][dp][du][m][g][t] = femaleVote1STDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 femaleVote1STD[dr][dp][du][m][g][t] = pow(femaleVote1STD[dr][dp][du][m][g][t] - pow(femaleVote1AVG[dr][dp][du][m][g][t], 2), .5);
 
-                utilityAVG[dr][dp][du][m][g][t] = utilityAVGAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
-                utilitySTD[dr][dp][du][m][g][t] = utilitySTDAtomic[dr][dp][du][m][g][t].get() / FTMain.ITERATION;
+                utilityAVG[dr][dp][du][m][g][t] = utilityAVGAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
+                utilitySTD[dr][dp][du][m][g][t] = utilitySTDAtomic[dr][dp][du][m][g][t].get() / Main.ITERATION;
                 utilitySTD[dr][dp][du][m][g][t] = pow(utilitySTD[dr][dp][du][m][g][t] - pow(utilitySTD[dr][dp][du][m][g][t], 2), .5);
 
-                for (int choice = 0; choice < FTMain.N; choice++) {
+                for (int choice = 0; choice < Main.N; choice++) {
                   choiceRateAVG[dr][dp][du][m][g][t][choice] =
-                      choiceRateAVGAtomic[dr][dp][du][m][g][t][choice].get() / FTMain.ITERATION;
+                      choiceRateAVGAtomic[dr][dp][du][m][g][t][choice].get() / Main.ITERATION;
                   choiceRateSTD[dr][dp][du][m][g][t][choice] =
                       choiceRateSTDAtomic[dr][dp][du][m][g][t][choice].get()
-                          / FTMain.ITERATION; // 220306 ADDED
+                          / Main.ITERATION; // 220306 ADDED
                   choiceRateSTD[dr][dp][du][m][g][t][choice] =
                       pow(
                           choiceRateSTD[dr][dp][du][m][g][t][choice]
@@ -382,15 +382,15 @@ public class FTComputation {
                           .5);
 
                   winningCoalitionNVoteByTypeCNT[dr][dp][du][m][g][t][choice] =
-                      new double[FTMain.M0[m] + 1][FTMain.M1[m] + 1];
+                      new double[Main.M0[m] + 1][Main.M1[m] + 1];
 
-                  for (int member = 0; member < FTMain.M[m]; member++) {
+                  for (int member = 0; member < Main.M[m]; member++) {
                     choiceRateIndAVG[dr][dp][du][m][g][t][member][choice] =
                         choiceRateIndAVGAtomic[dr][dp][du][m][g][t][member][choice].get()
-                            / FTMain.ITERATION;
+                            / Main.ITERATION;
                     choiceRateIndSTD[dr][dp][du][m][g][t][member][choice] =
                         choiceRateIndSTDAtomic[dr][dp][du][m][g][t][member][choice].get()
-                            / FTMain.ITERATION;
+                            / Main.ITERATION;
                     choiceRateIndSTD[dr][dp][du][m][g][t][member][choice] =
                         pow(
                             choiceRateIndSTD[dr][dp][du][m][g][t][member][choice]
@@ -430,8 +430,8 @@ public class FTComputation {
                     }
                   }
 
-                  for (int type1 = 0; type1 < FTMain.M0[m] + 1; type1++) {
-                    for (int type2 = 0; type2 < FTMain.M1[m] + 1; type2++) {
+                  for (int type1 = 0; type1 < Main.M0[m] + 1; type1++) {
+                    for (int type2 = 0; type2 < Main.M1[m] + 1; type2++) {
                       winningCoalitionNVoteByTypeCNT[dr][dp][du][m][g][t][choice][type1][type2] =
                           winningCoalitionNVoteByTypeCNTAtomic[dr][dp][du][m][g][t][choice][type1][type2]
                               .get();
@@ -454,11 +454,11 @@ public class FTComputation {
 
     @Override
     public void run() {
-      for (int dr = 0; dr < FTMain.DECISION_STRUCTURE_LENGTH; dr++) {
-        for (int dp = 0; dp < FTMain.P_LENGTH; dp++) {
-          for (int du = 0; du < FTMain.DELTA_U_LENGTH; du++) {
-            for (int m = 0; m < FTMain.M_LENGTH; m++) {
-              for (int g = 0; g < FTMain.G_LENGTH; g++) {
+      for (int dr = 0; dr < Main.DECISION_STRUCTURE_LENGTH; dr++) {
+        for (int dp = 0; dp < Main.P_LENGTH; dp++) {
+          for (int du = 0; du < Main.DELTA_U_LENGTH; du++) {
+            for (int m = 0; m < Main.M_LENGTH; m++) {
+              for (int g = 0; g < Main.G_LENGTH; g++) {
                 new runScenario(dr, dp, du, m, g);
               }
             }
@@ -543,13 +543,13 @@ public class FTComputation {
       this.mIndex = mIndex;
       this.gIndex = gIndex;
 
-      probabilityDifference = FTMain.P[probabilityDifferenceIndex];
-      utilityDifference = FTMain.DELTA_U[utilityDifferenceIndex];
-      m = FTMain.M[mIndex];
-      m0 = FTMain.M0[mIndex];
-      m1 = FTMain.M1[mIndex];
-      g0 = FTMain.G[gIndex][0];
-      g1 = FTMain.G[gIndex][1];
+      probabilityDifference = Main.P[probabilityDifferenceIndex];
+      utilityDifference = Main.DELTA_U[utilityDifferenceIndex];
+      m = Main.M[mIndex];
+      m0 = Main.M0[mIndex];
+      m1 = Main.M1[mIndex];
+      g0 = Main.G[gIndex][0];
+      g1 = Main.G[gIndex][1];
       setResultSpacePart();
       run();
     }
@@ -602,13 +602,13 @@ public class FTComputation {
     }
 
     void run() {
-      FTScenario s;
+      Scenario s;
       if (decisionRuleIndex == 0) {
         s = new FTScenarioSoloWoman(probabilityDifference, utilityDifference, 0, 1, g0, g1);
 //        System.out.println(Arrays.deepToString(s.belief0));
       } else {
         s =
-            new FTScenario(
+            new Scenario(
                 probabilityDifference,
                 utilityDifference,
                 decisionRuleIndex,
@@ -618,7 +618,7 @@ public class FTComputation {
                 g1
             );
       }
-      for (int t = 0; t < FTMain.TIME; t++) {
+      for (int t = 0; t < Main.TIME; t++) {
         s.setOutcome();
         synchronized (this) {
           double decisionAgainstPreferenceType0 =
@@ -686,7 +686,7 @@ public class FTComputation {
           for (int member = 0; member < s.m; member++) {
             choiceRateIndAVGAtomicPart[t][member][s.individualDecision[member]].addAndGet(1);
             choiceRateIndSTDAtomicPart[t][member][s.individualDecision[member]].addAndGet(1);
-            for (int arm = 0; arm < FTMain.N; arm++) {
+            for (int arm = 0; arm < Main.N; arm++) {
               if (s.falsePositive[member][arm] != 0) {
                 falsePositiveCNTAtomicPart[t][member][arm].addAndGet(1D);
                 falsePositiveAVGAtomicPart[t][member][arm].addAndGet(s.falsePositive[member][arm]);
