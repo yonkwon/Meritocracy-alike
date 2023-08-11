@@ -18,14 +18,14 @@ public class Main {
   static final double TAU = .01;
   static final int DECISION_STRUCTURE_LENGTH = 5;
 
-  static final double[] P = new double[]{.2, .5};
+  static final double[] G = new double[]{.2, .5};
   static final double[] DELTA_U = new double[]{.125, .25};
 
 //    static final double[] SET_P = new double[]{.5};
 //    static final double[] DELTA_U = new double[]{.125};
 
   static final double REWARD_TO_COOP = .0;
-  static final int P_LENGTH = P.length;
+  static final int P_LENGTH = G.length;
   static final int DELTA_U_LENGTH = DELTA_U.length;
 
   static final int N = 2;

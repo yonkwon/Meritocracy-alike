@@ -34,6 +34,10 @@ class Scenario {
   int[] armIndexArray;
   int[] memberIndexArray;
 
+  double meritocracyStateBestMatching;
+  double meritocracyStateRankCorrelation;
+  double meritocracyStateBeliefCorrelation;
+
   Scenario(
       int decisionRuleIndex,
       int n,
@@ -145,49 +149,19 @@ class Scenario {
     }
     setIndividualDecision();
     setOrganizationalDecision();
-    setSuccess();
   }
 
   void stepForward() {
     setIndividualDecision();
     setOrganizationalDecision();
     doIndividualLearning();
+    setOutcome();
   }
 
   void setIndividualDecision() {
     for (int individual : memberIndexArray) {
       individualDecision[individual] = transformBelief2Decision(belief[individual]);
       isSuccessfulIndividual[individual] = r.nextDouble() < pSuccess[individualDecision[individual]];
-    }
-  }
-
-  void setOrganizationalDecision() {
-    organizationalDecision = decisoinRule.decide();
-    isSuccessfulOrganization = r.nextDouble() < pSuccess[organizationalDecision];
-  }
-
-  void setOutcome() {
-    falsePositive = new double[m][n];
-    falseNegative = new double[m][n];
-
-  }
-
-  void doIndividualLearning() {
-    if (isSuccessfulOrganization) {
-      for (int individual : memberIndexArray) {
-        beliefNumerator[individual][organizationalDecision]++;
-        beliefDenominator[individual][organizationalDecision]++;
-        belief[individual][organizationalDecision] =
-            beliefNumerator[individual][organizationalDecision]
-                / (double) beliefDenominator[individual][organizationalDecision];
-      }
-    } else {
-      for (int individual : memberIndexArray) {
-        beliefDenominator[individual][organizationalDecision]++;
-        belief[individual][organizationalDecision] =
-            beliefNumerator[individual][organizationalDecision]
-                / (double) beliefDenominator[individual][organizationalDecision];
-      }
     }
   }
 
@@ -233,13 +207,38 @@ class Scenario {
     return probability;
   }
 
-  void shuffleFisherYates(int[] nArray) {
-    for (int i = nArray.length - 1; i > 0; i--) {
-      int j = r.nextInt(i + 1);
-      int temp = nArray[i];
-      nArray[i] = nArray[j];
-      nArray[j] = temp;
+  void setOrganizationalDecision() {
+    organizationalDecision = decisoinRule.decide();
+    isSuccessfulOrganization = r.nextDouble() < pSuccess[organizationalDecision];
+  }
+
+  void doIndividualLearning() {
+    if (isSuccessfulOrganization) {
+      for (int individual : memberIndexArray) {
+        beliefNumerator[individual][organizationalDecision]++;
+        beliefDenominator[individual][organizationalDecision]++;
+        belief[individual][organizationalDecision] =
+            beliefNumerator[individual][organizationalDecision]
+                / (double) beliefDenominator[individual][organizationalDecision];
+      }
+    } else {
+      for (int individual : memberIndexArray) {
+        beliefDenominator[individual][organizationalDecision]++;
+        belief[individual][organizationalDecision] =
+            beliefNumerator[individual][organizationalDecision]
+                / (double) beliefDenominator[individual][organizationalDecision];
+      }
     }
+  }
+
+  void setOutcome() {
+    falsePositive = new double[m][n];
+    falseNegative = new double[m][n];
+
+    meritocracyStateBestMatching = 0;
+    meritocracyStateRankCorrelation = 0;
+    meritocracyStateBeliefCorrelation = 0;
+
   }
 
   public interface DecisionRule {
@@ -461,201 +460,15 @@ class Scenario {
       decision = r.nextBoolean() ? decisionType0 : decisionType1;
       return decision;
     }
-
-//    @Override
-//    public void setWeightType1(double weightType1){
-//      this.weightType1 = weightType1;
-//    }
   }
 
-//
-//  class EqualRepresentation implements DecisionRule {
-//    // average beliefs decision-making structure functions as
-//    // plurality voting does but without any message trans-
-//    // formation.
-//    @Override
-//    public int getId() {
-//      return 3;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      int decision = -1;
-//      double maxCount = Double.MIN_VALUE;
-//      double[] countMessage = new double[FTn];
-//      for (int individual : memberIndexArray) {
-//        if( typeOf[individual] == 0 ){
-//          countMessage[individualDecision[individual]] += m1;
-//        }else{
-//          countMessage[individualDecision[individual]] += m0;
-//        }
-//      }
-//      shuffleFisherYates(armIndexArray);
-//      for (int choice : armIndexArray) {
-//        if (countMessage[choice] > maxCount) {
-//          decision = choice;
-//          maxCount = countMessage[choice];
-//        }
-//      }
-//      return decision;
-//    }
-//  }
-//
-//  class RotatingDictatorShip implements DecisionRule {
-//    // Finally, rotating dictatorship is like plurali-
-//    // ty voting but with highly unbalanced individual
-//    // inclusion; in each period, one randomly selected indi-
-//    // vidual is assigned a preference of one and all other indi-
-//    // viduals are weighted zero.
-//    @Override
-//    public int getId() {
-//      return 4;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      int dictator = r.nextInt(m);
-//      return individualDecision[dictator];
-//    }
-//  }
-//
-//  class WeightedDictatorship implements DecisionRule {
-//    double weightType0;
-//    double weightType1;
-//
-//    @Override
-//    public int getId() {
-//      return 5;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      int dictator;
-//      // Men v. Women
-//      double p = weightType0/(weightType0+weightType1);
-//      if( r.nextDouble() < p ){
-//        dictator = r.nextInt(m0);
-//      }else{
-//        dictator = m0 + r.nextInt(m1);
-//      }
-//      return individualDecision[dictator];
-//    }
-//
-//    @Override
-//    public void setWeightType0(double weightType0){
-//      this.weightType0 = weightType0;
-//    }
-//
-//    @Override
-//    public void setWeightType1(double weightType1){
-//      this.weightType1 = weightType1;
-//    }
-//
-//  }
-//
-//  class EqualDictatorship implements DecisionRule {
-//    @Override
-//    public int getId() {
-//      return 6;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      int dictator;
-//      // Men v. Women
-//      if( r.nextBoolean() ){
-//        dictator = r.nextInt(m0);
-//      }else{
-//        dictator = m0 + r.nextInt(m1);
-//      }
-//      return individualDecision[dictator];
-//    }
-//  }
-//
-//  class AverageBelief implements DecisionRule {
-//    // average beliefs decision-making structure functions as
-//    // plurality voting does but without any message trans-
-//    // formation.
-//    @Override
-//    public int getId() {
-//      return -999;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      double[] averageBelief = new double[FTn];
-//      double[] averageUtility = new double[FTn];
-//      for (int choice : armIndexArray) {
-//        for (int individual : memberIndexArray) {
-//          averageBelief[choice] += belief[individual][choice];
-//          int kind = typeOf[individual];
-//          for (int dimension = 0; dimension < 2; dimension++) {
-//            averageUtility[choice] += utility[kind][choice];
-//          }
-//        }
-//        averageBelief[choice] /= m;
-//        averageUtility[choice] /= m;
-//      }
-//      return transformBelief2Message(averageBelief, averageUtility);
-//    }
-//  }
-//
-//  class TwoStageVoting implements DecisionRule {
-//    // Two-stage voting is
-//    // similar to plurality voting, but the input and output of
-//    // decision making occurs twice: the full set of alterna-
-//    // tives is considered in the first round, and the top two
-//    // alternatives are considered in the second round.
-//    @Override
-//    public int getId() {
-//      return -999;
-//    }
-//
-//    @Override
-//    public int decide() {
-//      int decision;
-//      int bestChoice = -1;
-//      int secondBestChoice = -1;
-//      int maxCount = Integer.MIN_VALUE;
-//      int secondMaxCount = Integer.MIN_VALUE;
-//      // First Round
-//      int[] countMessage = new int[FTn];
-//      for (int individual : memberIndexArray) {
-//        countMessage[individualDecision[individual]]++;
-//      }
-//      shuffleFisherYates(armIndexArray);
-//      for (int choice : armIndexArray) {
-//        if (countMessage[choice] > maxCount) {
-//          secondBestChoice = bestChoice;
-//          secondMaxCount = maxCount;
-//          bestChoice = choice;
-//          maxCount = countMessage[choice];
-//        } else if (countMessage[choice] > secondMaxCount) {
-//          secondBestChoice = choice;
-//          secondMaxCount = countMessage[choice];
-//        }
-//      }
-//      // Secound Round
-//      countMessage = new int[2];
-//      for (int individual : memberIndexArray) {
-//        double first = belief[individual][bestChoice] * utility[typeOf[individual]][bestChoice];
-//        double second =
-//                belief[individual][secondBestChoice] * utility[typeOf[individual]][secondBestChoice];
-//        if (first > second) {
-//          countMessage[0]++;
-//        } else if (first < second) {
-//          countMessage[1]++;
-//        }
-//      }
-//      if (countMessage[0] > countMessage[1]) {
-//        decision = bestChoice;
-//      } else if (countMessage[0] < countMessage[1]) {
-//        decision = secondBestChoice;
-//      } else {
-//        decision = r.nextBoolean() ? bestChoice : secondBestChoice;
-//      }
-//      return decision;
-//    }
-//  }
+  void shuffleFisherYates(int[] arr) {
+    for (int i = arr.length - 1; i > 0; i--) {
+      int j = r.nextInt(i + 1);
+      int temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
 
 }

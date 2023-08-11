@@ -546,10 +546,7 @@ public class Computation {
       probabilityDifference = Main.P[probabilityDifferenceIndex];
       utilityDifference = Main.DELTA_U[utilityDifferenceIndex];
       m = Main.M[mIndex];
-      m0 = Main.M0[mIndex];
-      m1 = Main.M1[mIndex];
-      g0 = Main.G[gIndex][0];
-      g1 = Main.G[gIndex][1];
+      g = Main.G[gIndex];
       setResultSpacePart();
       run();
     }
