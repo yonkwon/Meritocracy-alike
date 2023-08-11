@@ -1,3 +1,3 @@
 # Meritocracy-alike
 
-A computational model for the "Meritcracy-alike" idea
+A JAVA code of the  computational model on the emergence of "meritcracy-alike" organizations.
