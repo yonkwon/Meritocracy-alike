@@ -21,6 +21,14 @@ class Scenario {
   double[][] beliefDenominator;
   double[][] belief;
   int[][] beliefRank;
+
+  double[] competenceBestMatching;
+  double[] competenceRankCorrelation;
+  double[] competenceBeliefCorrelation;
+  int[] rankBestMatching;
+  int[] rankRankCorrelation;
+  int[] rankBeliefCorrelation;
+
   double[] power;
   double[] reality;
   int[] realityRank;
@@ -36,9 +44,7 @@ class Scenario {
   int[] armIndexArray;
   int[] memberIndexArray;
 
-  double meritocracyStateBestMatching;
-  double meritocracyStateRankCorrelation;
-  double meritocracyStateBeliefCorrelation;
+  double meritocracyScore;
 
   Scenario(
       int decisionRuleIndex,
@@ -62,10 +68,10 @@ class Scenario {
 
   void setDecisionRule(int decisionRuleIndex) {
     switch (decisionRuleIndex) {
-      case 0 -> decisoinRule = new UnitaryActor();
-      case 1 -> decisoinRule = new PluralityVoting();
+      case 0 -> decisoinRule = new Autonomous();
+      case 1 -> decisoinRule = new RotatingDictatorship();
       case 2 -> decisoinRule = new WeightedVoting();
-      case 3 -> decisoinRule = new TwoStagePluralityVoting();
+      case 3 -> decisoinRule = new TwoStageVoting();
       case 4 -> decisoinRule = new TwoStageWeightedVoting();
     }
   }
@@ -257,16 +263,11 @@ class Scenario {
     default void setWeightType0(double weightType0) {
     }
 
-    ;
-
     default void setWeightType1(double weightType1) {
     }
-
-    ;
-
   }
 
-  class UnitaryActor implements DecisionRule {
+  class Autonomous implements DecisionRule {
 
     @Override
     public int getId() {
@@ -293,17 +294,7 @@ class Scenario {
     }
   }
 
-  class PluralityVoting implements DecisionRule {
-
-    // each individual transforms these beliefs in a
-    // binary manner such that the alternative with the high-
-    // est belief is one and the others are set to zero.  In this
-    // decision-making structure, individual inclusion is bal-
-    // anced, so each individual has equal preference in the or-
-    // ganizational decision. The output of decision making
-    // results when the organization sums the individuals’
-    // messages on each alternative and chooses the alterna-
-    // tive with the highest value.
+  class RotatingDictatorship implements DecisionRule {
     @Override
     public int getId() {
       return 1;
@@ -313,61 +304,48 @@ class Scenario {
     public int decide() {
       int decision = -1;
       double maxCount = Double.MIN_VALUE;
-      double[] countMessage = new double[n];
-      for (int individual : memberIndexArray) {
-        countMessage[individualDecision[individual]]++;
+      double[] countVote = new double[n];
+      for (int member : memberIndexArray) {
+        countVote[individualDecision[member]] += power[member];
       }
       shuffleFisherYates(armIndexArray);
       for (int choice : armIndexArray) {
-        if (countMessage[choice] > maxCount) {
+        if (countVote[choice] > maxCount) {
           decision = choice;
-          maxCount = countMessage[choice];
+          maxCount = countVote[choice];
         }
       }
       return decision;
     }
   }
 
-  class WeightedVoting implements DecisionRule {
-    // average beliefs decision-making structure functions as
-    // plurality voting does but without any message trans-
-    // formation.
-//    double weightType1;
-
+  class PluralityVoting implements DecisionRule {
     @Override
     public int getId() {
-      return 2;
+      return 1;
     }
 
     @Override
     public int decide() {
       int decision = -1;
       double maxCount = Double.MIN_VALUE;
-      double[] countMessage = new double[n];
-      for (int individual : memberIndexArray) {
-        if (typeOf[individual] == 0) {
-          countMessage[individualDecision[individual]] += m1;
-        } else {
-          countMessage[individualDecision[individual]] += m0;
-        }
+      double[] countVote = new double[n];
+      for (int member : memberIndexArray) {
+        countVote[individualDecision[member]] += power[member];
       }
       shuffleFisherYates(armIndexArray);
       for (int choice : armIndexArray) {
-        if (countMessage[choice] > maxCount) {
+        if (countVote[choice] > maxCount) {
           decision = choice;
-          maxCount = countMessage[choice];
+          maxCount = countVote[choice];
         }
       }
       return decision;
     }
-
-//    @Override
-//    public void setWeightType1(double weightType1){
-//      this.weightType1 = weightType1;
-//    }
   }
 
-  class TwoStagePluralityVoting implements DecisionRule {
+  
+  class TwoStageVoting implements DecisionRule {
     // average beliefs decision-making structure functions as
     // plurality voting does but without any message trans-
     // formation.
