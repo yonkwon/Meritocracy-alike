@@ -41,7 +41,7 @@ class Scenario {
   double[][] falsePositive;
   double[][] falseNegative;
 
-  int[] armIndexArray;
+  int[] alternativeIndexArray;
   int[] memberIndexArray;
 
   double meritocracyScore;
@@ -70,17 +70,17 @@ class Scenario {
     switch (decisionRuleIndex) {
       case 0 -> decisoinRule = new Autonomous();
       case 1 -> decisoinRule = new RotatingDictatorship();
-      case 2 -> decisoinRule = new WeightedVoting();
+      case 2 -> decisoinRule = new PluralityVoting();
       case 3 -> decisoinRule = new TwoStageVoting();
-      case 4 -> decisoinRule = new TwoStageWeightedVoting();
+      case 4 -> decisoinRule = new AverageBelief();
     }
   }
 
   void initializeIDArrays() {
     individualDecision = new int[m];
-    armIndexArray = new int[n];
+    alternativeIndexArray = new int[n];
     for (int choice = 0; choice < n; choice++) {
-      armIndexArray[choice] = choice;
+      alternativeIndexArray[choice] = choice;
     }
     memberIndexArray = new int[m];
     for (int individual = 0; individual < m; individual++) {
@@ -109,19 +109,19 @@ class Scenario {
       power[member] = r.nextDouble();
       powerSum += power[member];
       if (Main.IS_INITIAL_RANDOM) {
-        for (int choice : armIndexArray) {
+        for (int choice : alternativeIndexArray) {
           beliefNumeratorIndividual[choice] = r.nextInt(3);
           beliefDenominatorIndividual[choice] = 2D;
         }
       } else {
-        for (int choice : armIndexArray) {
+        for (int choice : alternativeIndexArray) {
           // One success one failure
           beliefNumeratorIndividual[choice] = 1D;
           beliefDenominatorIndividual[choice] = 2D;
         }
       }
       if (Main.IS_PREJOIN_GREEDY) {
-        for (int choice : armIndexArray) {
+        for (int choice : alternativeIndexArray) {
           if (beliefDenominatorIndividual[choice] != 0) {
             belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
           } else {
@@ -144,7 +144,7 @@ class Scenario {
           }
           beliefDenominatorIndividual[choice]++;
         }
-        for (int choice : armIndexArray) {
+        for (int choice : alternativeIndexArray) {
           if (beliefDenominatorIndividual[choice] != 0) {
             belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
           } else {
@@ -178,8 +178,8 @@ class Scenario {
     int decision = -1;
     if (Main.IS_GREEDY) {
       double bestBelief = Double.MIN_VALUE;
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
+      shuffleFisherYates(alternativeIndexArray);
+      for (int choice : alternativeIndexArray) {
         if (belief[choice] > bestBelief) {
           decision = choice;
           bestBelief = belief[choice];
@@ -204,7 +204,7 @@ class Scenario {
   double[] transformBelief2Probability(double[] belief) {
     double[] probability = belief.clone();
     double denominator = 0;
-    for (int choice : armIndexArray) {
+    for (int choice : alternativeIndexArray) {
       probability[choice] = exp(probability[choice] / Main.TAU);
       denominator += probability[choice];
     }
@@ -283,8 +283,8 @@ class Scenario {
       for (int individual : memberIndexArray) {
         countMessage[individualDecision[individual]]++;
       }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
+      shuffleFisherYates(alternativeIndexArray);
+      for (int choice : alternativeIndexArray) {
         if (countMessage[choice] > maxCount) {
           decision = choice;
           maxCount = countMessage[choice];
@@ -295,6 +295,7 @@ class Scenario {
   }
 
   class RotatingDictatorship implements DecisionRule {
+
     @Override
     public int getId() {
       return 1;
@@ -303,16 +304,14 @@ class Scenario {
     @Override
     public int decide() {
       int decision = -1;
-      double maxCount = Double.MIN_VALUE;
-      double[] countVote = new double[n];
+      double threshold = r.nextDouble();
+      double cumulative = 0;
       for (int member : memberIndexArray) {
-        countVote[individualDecision[member]] += power[member];
-      }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
-        if (countVote[choice] > maxCount) {
-          decision = choice;
-          maxCount = countVote[choice];
+        // @Does the loop order matter, really?
+        cumulative += power[member];
+        if (cumulative > threshold) {
+          decision = individualDecision[member];
+          break;
         }
       }
       return decision;
@@ -320,9 +319,10 @@ class Scenario {
   }
 
   class PluralityVoting implements DecisionRule {
+
     @Override
     public int getId() {
-      return 1;
+      return 2;
     }
 
     @Override
@@ -333,8 +333,8 @@ class Scenario {
       for (int member : memberIndexArray) {
         countVote[individualDecision[member]] += power[member];
       }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
+      shuffleFisherYates(alternativeIndexArray);
+      for (int choice : alternativeIndexArray) {
         if (countVote[choice] > maxCount) {
           decision = choice;
           maxCount = countVote[choice];
@@ -344,11 +344,8 @@ class Scenario {
     }
   }
 
-  
+
   class TwoStageVoting implements DecisionRule {
-    // average beliefs decision-making structure functions as
-    // plurality voting does but without any message trans-
-    // formation.
 
     @Override
     public int getId() {
@@ -357,51 +354,57 @@ class Scenario {
 
     @Override
     public int decide() {
-      int decisionType0 = -1;
-      int decisionType1 = -1;
-      int decision = -1;
-
-      double maxCountType0 = Double.MIN_VALUE;
-      double maxCountType1 = Double.MIN_VALUE;
-      double[] countMessageType0 = new double[n];
-      double[] countMessageType1 = new double[n];
-      for (int individual : memberIndexArray) {
-        if (typeOf[individual] == 0) {
-          countMessageType0[individualDecision[individual]] += 1D;
+      int decision;
+      int bestChoice = -1;
+      int secondBestChoice = -1;
+      double maxCount = Double.MIN_VALUE;
+      double secondMaxCount = Double.MIN_VALUE;
+      // First Round
+      double[] countVote = new double[n];
+      for (int member : memberIndexArray) {
+        countVote[individualDecision[member]] += power[member];
+      }
+      shuffleFisherYates(alternativeIndexArray);
+      for (int alternative : alternativeIndexArray) {
+        if (countVote[alternative] > maxCount) {
+          secondBestChoice = bestChoice;
+          secondMaxCount = maxCount;
+          bestChoice = alternative;
+          maxCount = countVote[alternative];
+        } else if (countVote[alternative] > secondMaxCount) {
+          secondBestChoice = alternative;
+          secondMaxCount = countVote[alternative];
+        }
+      }
+      // Secound Round
+      countVote = new double[2];
+      for (int member : memberIndexArray) {
+        if (belief[member][bestChoice] > belief[member][secondBestChoice]) {
+          countVote[0] += power[member];
+        } else if (belief[member][bestChoice] < belief[member][secondBestChoice]) {
+          countVote[1] += power[member];
         } else {
-          countMessageType1[individualDecision[individual]] += 1D;
+          if (r.nextBoolean()) {
+            countVote[0] += power[member]:
+          } else {
+            countVote[1] += power[member];
+          }
         }
       }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
-        if (countMessageType0[choice] > maxCountType0) {
-          decisionType0 = choice;
-          maxCountType0 = countMessageType0[choice];
-        }
-      }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
-        if (countMessageType1[choice] > maxCountType1) {
-          decisionType1 = choice;
-          maxCountType1 = countMessageType1[choice];
-        }
-      }
-      if (m0 > m1) {
-        decision = decisionType0;
-      } else if (m0 < m1) {
-        decision = decisionType1;
+      // Finalizing Org Decision
+      if (countVote[0] > countVote[1]) {
+        decision = bestChoice;
+      } else if (countVote[0] < countVote[1]) {
+        decision = secondBestChoice;
       } else {
-        decision = r.nextBoolean() ? decisionType0 : decisionType1;
+        decision = r.nextBoolean() ? bestChoice : secondBestChoice;
       }
       return decision;
     }
+
   }
 
-  class TwoStageWeightedVoting implements DecisionRule {
-    // average beliefs decision-making structure functions as
-    // plurality voting does but without any message trans-
-    // formation.
-
+  class AverageBelief implements DecisionRule {
     @Override
     public int getId() {
       return 4;
@@ -409,37 +412,14 @@ class Scenario {
 
     @Override
     public int decide() {
-      int decisionType0 = -1;
-      int decisionType1 = -1;
-      int decision = -1;
-
-      double maxCountType0 = Double.MIN_VALUE;
-      double maxCountType1 = Double.MIN_VALUE;
-      double[] countMessageType0 = new double[n];
-      double[] countMessageType1 = new double[n];
-      for (int individual : memberIndexArray) {
-        if (typeOf[individual] == 0) {
-          countMessageType0[individualDecision[individual]] += 1D;
-        } else {
-          countMessageType1[individualDecision[individual]] += 1D;
+      double[] averageBelief = new double[n];
+      for (int alternative : alternativeIndexArray) {
+        for (int member : memberIndexArray) {
+          averageBelief[alternative] += belief[member][alternative];
         }
+        averageBelief[alternative] /= m;
       }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
-        if (countMessageType0[choice] > maxCountType0) {
-          decisionType0 = choice;
-          maxCountType0 = countMessageType0[choice];
-        }
-      }
-      shuffleFisherYates(armIndexArray);
-      for (int choice : armIndexArray) {
-        if (countMessageType1[choice] > maxCountType1) {
-          decisionType1 = choice;
-          maxCountType1 = countMessageType1[choice];
-        }
-      }
-      decision = r.nextBoolean() ? decisionType0 : decisionType1;
-      return decision;
+      return transformBelief2Decision(averageBelief);
     }
   }
 
