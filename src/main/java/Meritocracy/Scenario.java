@@ -5,10 +5,12 @@ import static org.apache.commons.math3.util.FastMath.max;
 
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 class Scenario {
 
   RandomGenerator r;
+  PearsonsCorrelation pc;
 
   int decisionRuleIndex;
   DecisionRule decisoinRule;
@@ -20,31 +22,31 @@ class Scenario {
   double[][] beliefNumerator; //230731 Change into double to accommodate Henning's Request. It might be computationally costly.
   double[][] beliefDenominator;
   double[][] belief;
-  int[][] beliefRank;
+  double[][] beliefRank;
 
   double[] competenceBestMatching;
   double[] competenceRankCorrelation;
   double[] competenceBeliefCorrelation;
-  int[] rankBestMatching;
-  int[] rankRankCorrelation;
-  int[] rankBeliefCorrelation;
+  double[] rankBestMatching;
+  double[] rankRankCorrelation;
+  double[] rankBeliefCorrelation;
 
   double[] power;
+  double[] powerRank;
   double[] reality;
-  int[] realityRank;
+  double[] realityRank;
 
   int[] individualDecision;
   int organizationalDecision;
   boolean[] isSuccessfulIndividual;
   boolean isSuccessfulOrganization;
 
-  double[][] falsePositive;
-  double[][] falseNegative;
-
   int[] alternativeIndexArray;
   int[] memberIndexArray;
 
-  double meritocracyScore;
+  double meritocracyScoreBestMatching;
+  double meritocracyScoreRankCorrelation;
+  double meritocracyScoreBeliefCorrelation;
 
   Scenario(
       int decisionRuleIndex,
@@ -53,6 +55,7 @@ class Scenario {
       int g
   ) {
     r = new MersenneTwister();
+    pc = new PearsonsCorrelation();
 
     this.decisionRuleIndex = decisionRuleIndex;
     setDecisionRule(decisionRuleIndex);
@@ -63,7 +66,8 @@ class Scenario {
 
     initializeIDArrays();
     initializeReality();
-    initializeIndividual();
+    initializeOrganization();
+    setOutcome();
   }
 
   void setDecisionRule(int decisionRuleIndex) {
@@ -96,7 +100,7 @@ class Scenario {
     realityRank = getRank(reality);
   }
 
-  void initializeIndividual() {
+  void initializeOrganization() {
     beliefNumerator = new double[m][n];
     beliefDenominator = new double[m][n];
     belief = new double[m][n];
@@ -156,6 +160,7 @@ class Scenario {
     for (int member : memberIndexArray) {
       power[member] /= powerSum;
     }
+    powerRank = getRank(power);
     setIndividualDecision();
     setOrganizationalDecision();
   }
@@ -163,7 +168,7 @@ class Scenario {
   void stepForward() {
     setIndividualDecision();
     setOrganizationalDecision();
-    doIndividualLearning();
+    doLearning();
     setOutcome();
   }
 
@@ -221,32 +226,56 @@ class Scenario {
     isSuccessfulOrganization = r.nextDouble() < reality[organizationalDecision];
   }
 
-  void doIndividualLearning() {
-    if (isSuccessfulOrganization) {
-      for (int individual : memberIndexArray) {
-        beliefNumerator[individual][organizationalDecision]++;
-        beliefDenominator[individual][organizationalDecision]++;
-        belief[individual][organizationalDecision] =
-            beliefNumerator[individual][organizationalDecision]
-                / (double) beliefDenominator[individual][organizationalDecision];
-      }
+  void doLearning() {
+    if (decisionRuleIndex == 0) {
+      doAutonomousLearning();
     } else {
-      for (int individual : memberIndexArray) {
-        beliefDenominator[individual][organizationalDecision]++;
-        belief[individual][organizationalDecision] =
-            beliefNumerator[individual][organizationalDecision]
-                / (double) beliefDenominator[individual][organizationalDecision];
-      }
+      doOrganizationalLearning();
     }
   }
 
-  void setOutcome() {
-    falsePositive = new double[m][n];
-    falseNegative = new double[m][n];
+  void doOrganizationalLearning() {
+    double beliefNumeratorChange = isSuccessfulOrganization ? 1 : 0;
+    for (int member : memberIndexArray) {
+      beliefNumerator[member][organizationalDecision] += beliefNumeratorChange;
+      beliefDenominator[member][organizationalDecision]++;
+      belief[member][organizationalDecision] = beliefNumerator[member][organizationalDecision] / (double) beliefDenominator[member][organizationalDecision];
+      beliefRank[member] = getRank(belief[member]);
+    }
+  }
 
-    meritocracyStateBestMatching = 0;
-    meritocracyStateRankCorrelation = 0;
-    meritocracyStateBeliefCorrelation = 0;
+  void doAutonomousLearning() {
+    for (int member : memberIndexArray) {
+      if (isSuccessfulIndividual[member]) {
+        beliefNumerator[member][organizationalDecision]++;
+      }
+      beliefDenominator[member][organizationalDecision]++;
+      belief[member][organizationalDecision] = beliefNumerator[member][organizationalDecision] / (double) beliefDenominator[member][organizationalDecision];
+      beliefRank[member] = getRank(belief[member]);
+    }
+  }
+
+  void updateIndividualCompetence() {
+    competenceBestMatching = new double[m];
+    competenceRankCorrelation = new double[m];
+    competenceBeliefCorrelation = new double[m];
+
+    for (int member : memberIndexArray) {
+      competenceBestMatching[member] = beliefRank[member][0] == realityRank[0] ? 1 : 0;
+      competenceRankCorrelation[member] = pc.correlation(beliefRank[member], realityRank);
+      competenceBeliefCorrelation[member] = pc.correlation(belief[member], reality);
+    }
+
+    rankBestMatching = getRank(competenceBestMatching);
+    rankRankCorrelation = getRank(competenceRankCorrelation);
+    rankBeliefCorrelation = getRank(competenceBeliefCorrelation);
+  }
+
+  void setOutcome() {
+    meritocracyScoreBestMatching = pc.correlation(rankBestMatching, powerRank);
+    meritocracyScoreRankCorrelation = pc.correlation(rankRankCorrelation, powerRank);
+    meritocracyScoreBeliefCorrelation = pc.correlation(rankBeliefCorrelation, powerRank);
+
 
   }
 
@@ -385,7 +414,7 @@ class Scenario {
           countVote[1] += power[member];
         } else {
           if (r.nextBoolean()) {
-            countVote[0] += power[member]:
+            countVote[0] += power[member];
           } else {
             countVote[1] += power[member];
           }
@@ -405,6 +434,7 @@ class Scenario {
   }
 
   class AverageBelief implements DecisionRule {
+
     @Override
     public int getId() {
       return 4;
@@ -432,18 +462,22 @@ class Scenario {
     }
   }
 
-  int[] getRank(double[] arr) {
-    int[] rank = new int[arr.length];
+  double[] getRank(double[] arr) {
+    double[] rank = new double[arr.length];
     for (int focal = 0; focal < arr.length; focal++) {
-      int rankOf = 0;  // Start rank from 0
+      double rankOf = 0;  // Start rank from 0
       for (int target = 0; target < arr.length; target++) {
-        if (arr[target] < arr[focal] || (arr[target] == arr[focal] && target < focal)) {
+//        if (arr[target] < arr[focal] || (arr[target] == arr[focal] && target < focal)) {
+//          rankOf++;
+//        }
+        if (arr[target] < arr[focal]) {
           rankOf++;
+        } else if (arr[target] == arr[focal]) {
+          rankOf += .5;
         }
       }
       rank[focal] = rankOf;
     }
     return rank;
   }
-
 }
