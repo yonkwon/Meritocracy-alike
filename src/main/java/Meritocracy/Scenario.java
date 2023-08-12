@@ -20,8 +20,10 @@ class Scenario {
   double[][] beliefNumerator; //230731 Change into double to accommodate Henning's Request. It might be computationally costly.
   double[][] beliefDenominator;
   double[][] belief;
+  int[][] beliefRank;
   double[] power;
-  double[] pSuccess; // 6 arms; 123 low 456 high success rate
+  double[] reality;
+  int[] realityRank;
 
   int[] individualDecision;
   int organizationalDecision;
@@ -54,7 +56,7 @@ class Scenario {
     this.g = g;
 
     initializeIDArrays();
-    initializeTaskEnvironment();
+    initializeReality();
     initializeIndividual();
   }
 
@@ -68,7 +70,7 @@ class Scenario {
     }
   }
 
-  void initializeIDArrays(){
+  void initializeIDArrays() {
     individualDecision = new int[m];
     armIndexArray = new int[n];
     for (int choice = 0; choice < n; choice++) {
@@ -80,11 +82,12 @@ class Scenario {
     }
   }
 
-  void initializeTaskEnvironment() {
-    pSuccess = new double[n];
+  void initializeReality() {
+    reality = new double[n];
     for (int p = 0; p < n; p++) {
-      pSuccess[p] = r.nextDouble();
+      reality[p] = r.nextDouble();
     }
+    realityRank = getRank(reality);
   }
 
   void initializeIndividual() {
@@ -94,7 +97,7 @@ class Scenario {
     power = new double[m];
     double powerSum = 0;
 
-    for( int member : memberIndexArray ){
+    for (int member : memberIndexArray) {
       double[] beliefNumeratorIndividual = beliefNumerator[member];
       double[] beliefDenominatorIndividual = beliefDenominator[member];
       power[member] = r.nextDouble();
@@ -121,7 +124,7 @@ class Scenario {
         }
         for (int sample = 0; sample < g; sample++) {
           int choice = transformBelief2Decision(belief[member]);
-          if (r.nextDouble() < pSuccess[choice]) {
+          if (r.nextDouble() < reality[choice]) {
             beliefNumeratorIndividual[choice]++;
           }
           beliefDenominatorIndividual[choice]++;
@@ -130,7 +133,7 @@ class Scenario {
       } else {
         for (int prejoin = 0; prejoin < g; prejoin++) {
           int choice = r.nextInt(n);
-          if (r.nextDouble() < pSuccess[choice]) {
+          if (r.nextDouble() < reality[choice]) {
             beliefNumeratorIndividual[choice]++;
           }
           beliefDenominatorIndividual[choice]++;
@@ -144,7 +147,7 @@ class Scenario {
         }
       }
     }
-    for( int member : memberIndexArray ){
+    for (int member : memberIndexArray) {
       power[member] /= powerSum;
     }
     setIndividualDecision();
@@ -161,7 +164,7 @@ class Scenario {
   void setIndividualDecision() {
     for (int individual : memberIndexArray) {
       individualDecision[individual] = transformBelief2Decision(belief[individual]);
-      isSuccessfulIndividual[individual] = r.nextDouble() < pSuccess[individualDecision[individual]];
+      isSuccessfulIndividual[individual] = r.nextDouble() < reality[individualDecision[individual]];
     }
   }
 
@@ -209,7 +212,7 @@ class Scenario {
 
   void setOrganizationalDecision() {
     organizationalDecision = decisoinRule.decide();
-    isSuccessfulOrganization = r.nextDouble() < pSuccess[organizationalDecision];
+    isSuccessfulOrganization = r.nextDouble() < reality[organizationalDecision];
   }
 
   void doIndividualLearning() {
@@ -469,6 +472,20 @@ class Scenario {
       arr[i] = arr[j];
       arr[j] = temp;
     }
+  }
+
+  int[] getRank(double[] arr) {
+    int[] rank = new int[arr.length];
+    for (int focal = 0; focal < arr.length; focal++) {
+      int rankOf = 0;  // Start rank from 0
+      for (int target = 0; target < arr.length; target++) {
+        if (arr[target] < arr[focal] || (arr[target] == arr[focal] && target < focal)) {
+          rankOf++;
+        }
+      }
+      rank[focal] = rankOf;
+    }
+    return rank;
   }
 
 }
