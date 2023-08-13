@@ -11,12 +11,12 @@ public class Computation {
 
   ExecutorService workStealingPool;
 
-  AtomicDouble[][] averageBestMatchingAVGAtomic;
-  AtomicDouble[][] averageBestMatchingSTDAtomic;
-  AtomicDouble[][] averageRankCorrelationAVGAtomic;
-  AtomicDouble[][] averageRankCorrelationSTDAtomic;
-  AtomicDouble[][] averageBeliefCorrelationAVGAtomic;
-  AtomicDouble[][] averageBeliefCorrelationSTDAtomic;
+  AtomicDouble[][] averageCompetenceBestMatchingAVGAtomic;
+  AtomicDouble[][] averageCompetenceBestMatchingSTDAtomic;
+  AtomicDouble[][] averageCompetenceRankCorrelationAVGAtomic;
+  AtomicDouble[][] averageCompetenceRankCorrelationSTDAtomic;
+  AtomicDouble[][] averageCompetenceBeliefCorrelationAVGAtomic;
+  AtomicDouble[][] averageCompetenceBeliefCorrelationSTDAtomic;
 
   AtomicDouble[][] meritocracyScoreBestMatchingAVGAtomic;
   AtomicDouble[][] meritocracyScoreBestMatchingSTDAtomic;
@@ -25,12 +25,12 @@ public class Computation {
   AtomicDouble[][] meritocracyScoreBeliefCorrelationAVGAtomic;
   AtomicDouble[][] meritocracyScoreBeliefCorrelationSTDAtomic;
 
-  double[][] averageBestMatchingAVG;
-  double[][] averageBestMatchingSTD;
-  double[][] averageRankCorrelationAVG;
-  double[][] averageRankCorrelationSTD;
-  double[][] averageBeliefCorrelationAVG;
-  double[][] averageBeliefCorrelationSTD;
+  double[][] averageCompetenceBestMatchingAVG;
+  double[][] averageCompetenceBestMatchingSTD;
+  double[][] averageCompetenceRankCorrelationAVG;
+  double[][] averageCompetenceRankCorrelationSTD;
+  double[][] averageCompetenceBeliefCorrelationAVG;
+  double[][] averageCompetenceBeliefCorrelationSTD;
 
   double[][] meritocracyScoreBestMatchingAVG;
   double[][] meritocracyScoreBestMatchingSTD;
@@ -47,7 +47,7 @@ public class Computation {
 
     setResultSpace();
     runFullExperiment();
-    averageFullExperiment();
+    averageCompetenceFullExperiment();
   }
 
   private void runFullExperiment() {
@@ -64,12 +64,12 @@ public class Computation {
   }
 
   void setResultSpace() {
-    averageBestMatchingAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBestMatchingSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageRankCorrelationAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageRankCorrelationSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBeliefCorrelationAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBeliefCorrelationSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBestMatchingAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBestMatchingSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceRankCorrelationAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceRankCorrelationSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBeliefCorrelationAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBeliefCorrelationSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
 
     meritocracyScoreBestMatchingAVGAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
     meritocracyScoreBestMatchingSTDAtomic = new AtomicDouble[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
@@ -80,12 +80,12 @@ public class Computation {
 
     for (int dr = 0; dr < Main.DECISION_STRUCTURE_LENGTH; dr++) {
       for (int t = 0; t < Main.TIME; t++) {
-        averageBestMatchingAVGAtomic[dr][t] = new AtomicDouble();
-        averageBestMatchingSTDAtomic[dr][t] = new AtomicDouble();
-        averageRankCorrelationAVGAtomic[dr][t] = new AtomicDouble();
-        averageRankCorrelationSTDAtomic[dr][t] = new AtomicDouble();
-        averageBeliefCorrelationAVGAtomic[dr][t] = new AtomicDouble();
-        averageBeliefCorrelationSTDAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceBestMatchingAVGAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceBestMatchingSTDAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceRankCorrelationAVGAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceRankCorrelationSTDAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceBeliefCorrelationAVGAtomic[dr][t] = new AtomicDouble();
+        averageCompetenceBeliefCorrelationSTDAtomic[dr][t] = new AtomicDouble();
         meritocracyScoreBestMatchingAVGAtomic[dr][t] = new AtomicDouble();
         meritocracyScoreBestMatchingSTDAtomic[dr][t] = new AtomicDouble();
         meritocracyScoreRankCorrelationAVGAtomic[dr][t] = new AtomicDouble();
@@ -95,12 +95,12 @@ public class Computation {
       }
     }
 
-    averageBestMatchingAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBestMatchingSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageRankCorrelationAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageRankCorrelationSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBeliefCorrelationAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
-    averageBeliefCorrelationSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBestMatchingAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBestMatchingSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceRankCorrelationAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceRankCorrelationSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBeliefCorrelationAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
+    averageCompetenceBeliefCorrelationSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
 
     meritocracyScoreBestMatchingAVG = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
     meritocracyScoreBestMatchingSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
@@ -110,18 +110,18 @@ public class Computation {
     meritocracyScoreBeliefCorrelationSTD = new double[Main.DECISION_STRUCTURE_LENGTH][Main.TIME];
   }
 
-  private void averageFullExperiment() {
+  private void averageCompetenceFullExperiment() {
     for (int dr = 0; dr < Main.DECISION_STRUCTURE_LENGTH; dr++) {
       for (int t = 0; t < Main.TIME; t++) {
-        averageBestMatchingAVG[dr][t] = averageBestMatchingAVGAtomic[dr][t].get() / Main.ITERATION;
-        averageBestMatchingSTD[dr][t] = averageBestMatchingSTDAtomic[dr][t].get() / Main.ITERATION;
-        averageBestMatchingSTD[dr][t] = pow(averageBestMatchingSTD[dr][t] - pow(averageBestMatchingAVG[dr][t], 2), .5);
-        averageRankCorrelationAVG[dr][t] = averageRankCorrelationAVGAtomic[dr][t].get() / Main.ITERATION;
-        averageRankCorrelationSTD[dr][t] = averageRankCorrelationSTDAtomic[dr][t].get() / Main.ITERATION;
-        averageRankCorrelationSTD[dr][t] = pow(averageRankCorrelationSTD[dr][t] - pow(averageRankCorrelationAVG[dr][t], 2), .5);
-        averageBeliefCorrelationAVG[dr][t] = averageBeliefCorrelationAVGAtomic[dr][t].get() / Main.ITERATION;
-        averageBeliefCorrelationSTD[dr][t] = averageBeliefCorrelationSTDAtomic[dr][t].get() / Main.ITERATION;
-        averageBeliefCorrelationSTD[dr][t] = pow(averageBeliefCorrelationSTD[dr][t] - pow(averageBeliefCorrelationAVG[dr][t], 2), .5);
+        averageCompetenceBestMatchingAVG[dr][t] = averageCompetenceBestMatchingAVGAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceBestMatchingSTD[dr][t] = averageCompetenceBestMatchingSTDAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceBestMatchingSTD[dr][t] = pow(averageCompetenceBestMatchingSTD[dr][t] - pow(averageCompetenceBestMatchingAVG[dr][t], 2), .5);
+        averageCompetenceRankCorrelationAVG[dr][t] = averageCompetenceRankCorrelationAVGAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceRankCorrelationSTD[dr][t] = averageCompetenceRankCorrelationSTDAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceRankCorrelationSTD[dr][t] = pow(averageCompetenceRankCorrelationSTD[dr][t] - pow(averageCompetenceRankCorrelationAVG[dr][t], 2), .5);
+        averageCompetenceBeliefCorrelationAVG[dr][t] = averageCompetenceBeliefCorrelationAVGAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceBeliefCorrelationSTD[dr][t] = averageCompetenceBeliefCorrelationSTDAtomic[dr][t].get() / Main.ITERATION;
+        averageCompetenceBeliefCorrelationSTD[dr][t] = pow(averageCompetenceBeliefCorrelationSTD[dr][t] - pow(averageCompetenceBeliefCorrelationAVG[dr][t], 2), .5);
         meritocracyScoreBestMatchingAVG[dr][t] = meritocracyScoreBestMatchingAVGAtomic[dr][t].get() / Main.ITERATION;
         meritocracyScoreBestMatchingSTD[dr][t] = meritocracyScoreBestMatchingSTDAtomic[dr][t].get() / Main.ITERATION;
         meritocracyScoreBestMatchingSTD[dr][t] = pow(meritocracyScoreBestMatchingSTD[dr][t] - pow(meritocracyScoreBestMatchingAVG[dr][t], 2), .5);
@@ -156,12 +156,12 @@ public class Computation {
     int m; // Number of individuals
     int g; // Length of prejoin experience
 
-    AtomicDouble[] averageBestMatchingAVGAtomicPart;
-    AtomicDouble[] averageBestMatchingSTDAtomicPart;
-    AtomicDouble[] averageRankCorrelationAVGAtomicPart;
-    AtomicDouble[] averageRankCorrelationSTDAtomicPart;
-    AtomicDouble[] averageBeliefCorrelationAVGAtomicPart;
-    AtomicDouble[] averageBeliefCorrelationSTDAtomicPart;
+    AtomicDouble[] averageCompetenceBestMatchingAVGAtomicPart;
+    AtomicDouble[] averageCompetenceBestMatchingSTDAtomicPart;
+    AtomicDouble[] averageCompetenceRankCorrelationAVGAtomicPart;
+    AtomicDouble[] averageCompetenceRankCorrelationSTDAtomicPart;
+    AtomicDouble[] averageCompetenceBeliefCorrelationAVGAtomicPart;
+    AtomicDouble[] averageCompetenceBeliefCorrelationSTDAtomicPart;
 
     AtomicDouble[] meritocracyScoreBestMatchingAVGAtomicPart;
     AtomicDouble[] meritocracyScoreBestMatchingSTDAtomicPart;
@@ -182,12 +182,12 @@ public class Computation {
     }
 
     void setResultSpacePart() {
-      averageBestMatchingAVGAtomicPart = averageBestMatchingAVGAtomic[decisionRuleIndex];
-      averageBestMatchingSTDAtomicPart = averageBestMatchingSTDAtomic[decisionRuleIndex];
-      averageRankCorrelationAVGAtomicPart = averageRankCorrelationAVGAtomic[decisionRuleIndex];
-      averageRankCorrelationSTDAtomicPart = averageRankCorrelationSTDAtomic[decisionRuleIndex];
-      averageBeliefCorrelationAVGAtomicPart = averageBeliefCorrelationAVGAtomic[decisionRuleIndex];
-      averageBeliefCorrelationSTDAtomicPart = averageBeliefCorrelationSTDAtomic[decisionRuleIndex];
+      averageCompetenceBestMatchingAVGAtomicPart = averageCompetenceBestMatchingAVGAtomic[decisionRuleIndex];
+      averageCompetenceBestMatchingSTDAtomicPart = averageCompetenceBestMatchingSTDAtomic[decisionRuleIndex];
+      averageCompetenceRankCorrelationAVGAtomicPart = averageCompetenceRankCorrelationAVGAtomic[decisionRuleIndex];
+      averageCompetenceRankCorrelationSTDAtomicPart = averageCompetenceRankCorrelationSTDAtomic[decisionRuleIndex];
+      averageCompetenceBeliefCorrelationAVGAtomicPart = averageCompetenceBeliefCorrelationAVGAtomic[decisionRuleIndex];
+      averageCompetenceBeliefCorrelationSTDAtomicPart = averageCompetenceBeliefCorrelationSTDAtomic[decisionRuleIndex];
       meritocracyScoreBestMatchingAVGAtomicPart = meritocracyScoreBestMatchingAVGAtomic[decisionRuleIndex];
       meritocracyScoreBestMatchingSTDAtomicPart = meritocracyScoreBestMatchingSTDAtomic[decisionRuleIndex];
       meritocracyScoreRankCorrelationAVGAtomicPart = meritocracyScoreRankCorrelationAVGAtomic[decisionRuleIndex];
@@ -201,12 +201,12 @@ public class Computation {
       for (int t = 0; t < Main.TIME; t++) {
         s.setOutcome();
         synchronized (this) {
-          averageBestMatchingAVGAtomicPart[t].addAndGet(s.averageCompetenceBestMatching);
-          averageBestMatchingSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceBestMatching, 2));
-          averageRankCorrelationAVGAtomicPart[t].addAndGet(s.averageCompetenceRankCorrelation);
-          averageRankCorrelationSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceRankCorrelation, 2));
-          averageBeliefCorrelationAVGAtomicPart[t].addAndGet(s.averageCompetenceBeliefCorrelation);
-          averageBeliefCorrelationSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceBeliefCorrelation, 2));
+          averageCompetenceBestMatchingAVGAtomicPart[t].addAndGet(s.averageCompetenceBestMatching);
+          averageCompetenceBestMatchingSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceBestMatching, 2));
+          averageCompetenceRankCorrelationAVGAtomicPart[t].addAndGet(s.averageCompetenceRankCorrelation);
+          averageCompetenceRankCorrelationSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceRankCorrelation, 2));
+          averageCompetenceBeliefCorrelationAVGAtomicPart[t].addAndGet(s.averageCompetenceBeliefCorrelation);
+          averageCompetenceBeliefCorrelationSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceBeliefCorrelation, 2));
 
           meritocracyScoreBestMatchingAVGAtomicPart[t].addAndGet(s.meritocracyScoreBestMatching);
           meritocracyScoreBestMatchingSTDAtomicPart[t].addAndGet(pow(s.meritocracyScoreBestMatching, 2));

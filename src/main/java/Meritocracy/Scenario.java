@@ -113,7 +113,7 @@ class Scenario {
       double[] beliefDenominatorIndividual = beliefDenominator[member];
       power[member] = r.nextDouble();
       powerSum += power[member];
-      if (Main.IS_INITIAL_RANDOM) {
+      if (Main.IS_PREJOIN_RANDOM) {
         for (int choice : alternativeIndexArray) {
           beliefNumeratorIndividual[choice] = r.nextInt(3);
           beliefDenominatorIndividual[choice] = 2D;

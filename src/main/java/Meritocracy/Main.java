@@ -7,7 +7,7 @@ public class Main {
   static final long TIC = System.currentTimeMillis();
 
   static final boolean IS_GREEDY = true;
-  static final boolean IS_INITIAL_RANDOM = true;
+  static final boolean IS_PREJOIN_RANDOM = true;
   static final boolean IS_PREJOIN_GREEDY = true;
 
   static final int ITERATION = 10_000;
@@ -23,8 +23,8 @@ public class Main {
   static String FILENAME = ID
       + "Greed" + IS_GREEDY
       + (!IS_GREEDY ? ("TAU" + TAU) : "")
-      + "InitRand" + IS_INITIAL_RANDOM
-      + "PreGreed" + IS_PREJOIN_GREEDY
+      + "PrejoinRand" + IS_PREJOIN_RANDOM
+      + "PrejoinGreed" + IS_PREJOIN_GREEDY
       + "I" + ITERATION
       + "T" + TIME
       + "N" + N
