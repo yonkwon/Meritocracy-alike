@@ -44,6 +44,9 @@ class Scenario {
   int[] alternativeIndexArray;
   int[] memberIndexArray;
 
+  double averageCompetenceBestMatching;
+  double averageCompetenceRankCorrelation;
+  double averageCompetenceBeliefCorrelation;
   double meritocracyScoreBestMatching;
   double meritocracyScoreRankCorrelation;
   double meritocracyScoreBeliefCorrelation;
@@ -272,11 +275,12 @@ class Scenario {
   }
 
   void setOutcome() {
+    averageCompetenceBestMatching = getAverage(competenceBestMatching);
+    averageCompetenceRankCorrelation = getAverage(competenceRankCorrelation);
+    averageCompetenceBeliefCorrelation = getAverage(competenceBeliefCorrelation);
     meritocracyScoreBestMatching = pc.correlation(rankBestMatching, powerRank);
     meritocracyScoreRankCorrelation = pc.correlation(rankRankCorrelation, powerRank);
     meritocracyScoreBeliefCorrelation = pc.correlation(rankBeliefCorrelation, powerRank);
-
-
   }
 
   public interface DecisionRule {
@@ -480,4 +484,13 @@ class Scenario {
     }
     return rank;
   }
+
+  double getAverage(double[] arr) {
+    double average = 0;
+    for (double value : arr) {
+      average += value;
+    }
+    return average / (double) arr.length;
+  }
+
 }
