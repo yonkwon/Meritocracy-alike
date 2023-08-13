@@ -1,0 +1,3296 @@
+---
+title: "A Grapher for Meritocracy-alike First Trial"
+author: "Yon Kwon"
+date: "13/08/2023"
+output: html_document
+---
+
+# Grapher for Tzogos Sequel
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
+library(R.matlab)
+library(tidyverse) # tibble (dataframe)
+library(ggplot2) # Plot
+library(patchwork) # Plot patchwork
+library(ggExtra) # https://r-charts.com/correlation/scatter-plot-marginal-histograms-ggplot2/
+library(scatterpie)
+library(tidyr) # gather()
+library(gganimate) # Animated plot
+library(gifski) # Rendering *.gif image
+library(transformr) # geom_density requisite
+library(progress) # Progress bar
+library(reshape2) # melt()
+library(cowplot) # Figure cutoff avoid
+library(viridis)
+library(scales) # pretty_breaks()
+library(ggrepel) # geom_text_repel
+library(ggsci) # colormap
+```
+
+## Data Import & User Config
+```{r data_file, eval=FALSE, include=FALSE}{r clear}
+# rm(list=ls()) # Cleaning R environment
+setwd(dirname(rstudioapi::getSourceEditorContext()$path)) # Set SRC DIR as WD
+file_baseline <- file.choose()
+gc()
+data_baseline <- readMat(file_baseline)
+fig_id <- paste0(
+  basename(file_baseline),
+  'i', data_baseline$para.iteration,
+  'm', data_baseline$para.g.m,
+  'g', data_baseline$para.g
+)
+
+choice_label <- c('Male Arm', 'Female Arm')
+choice_label <- ordered(choice_label, levels=choice_label)
+choice_color <- viridis(data_baseline$para.n)
+choice_color <- c(
+  'Male Arm' = choice_color[1],
+  'Female Arm' = choice_color[2]
+)
+
+type_label <- c('Male', 'Female')
+type_label <- factor( type_label, levels = type_label)
+type_Color <- c('dodgerblue', 'lightcoral')
+
+dr_label <- c(
+  'Solo Woman',
+  'Plurality Voting without Caucus',
+  'Weighted Voting without Caucus',
+  'Plurality Voting with Caucus',
+  'Weighted Voting with Caucus'
+)
+dr_label <- ordered(dr_label, levels=dr_label)
+
+dr_label_2l <- c(
+  'Solo Woman',
+  'Plurality Voting\nwithout Caucus',
+  'Weighted Voting\nwithout Caucus',
+  'Plurality Voting\nwith Caucus',
+  'Weighted Voting\nwith Caucus'
+)
+dr_label_2l <- ordered(dr_label_2l, levels=dr_label_2l)
+
+event_label <- c(
+  'Failure (M)',
+  'Failure (F)',
+  'Success (M)',
+  'Success (F)'
+)
+event_label <- ordered(event_label, levels=event_label)
+
+fig_width <- 6.5
+fig_height <- 2
+fig_dpi <- 600
+fig_alpha <- .75
+label_size <- 10
+tick_label_size <- 8
+fig_open <- T # Open figure on R dev. env.
+fig_save <- T # Save figure as *.png
+```
+
+## Figure Function
+```{r fig_function}
+get_stackbar_x_delta_y_choice_rate_panel_dr <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label, 
+  y_label = 'Choice Rate',
+  y_limit = c(0,1.01),
+  z_color = choice_color,
+  show_data_value = T,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(.~label) +
+    geom_bar(data = dat, position='stack', stat='identity') +
+    scale_fill_viridis(discrete = TRUE, alpha = 1) +
+    labs(x = x_label, y = y_label) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    scale_y_continuous(limits=y_limit) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=90),
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_fill_viridis(discrete = TRUE, alpha = .5) +
+      geom_text(position = position_stack(vjust = 0.5), size = 2)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+get_fig_x_time_z_lab_panel_decision_rule <- function(
+  filename,
+  axes, dat,
+  y_label,
+  x_limit, 
+  y_limit,
+  z_color = NULL, 
+  z_lty = NULL,
+  fig_width = 6.5,
+  fig_height = 2
+){
+  fig <- ggplot(alpha = fig_alpha) +
+    geom_line(data = dat, mapping = axes) +
+    facet_grid(~label) +
+    labs(x = 'Time Period (t)', y = y_label) +
+    scale_y_continuous(limits=y_limit) +
+    scale_x_continuous(limits=x_limit) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  if( !is.null(z_color) ){
+    fig <- fig +
+      scale_color_manual(values = z_color)
+  }
+  if( !is.null(z_lty) ){
+    fig <- fig +
+      scale_linetype_manual(values = z_lty)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = fig_width,
+      height = fig_height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+```
+
+
+## Figure 1 - Compare 4 DMSs in each panel, for different outcome variables, in a fixed environment
+```{r fig1_grand}
+set_dp_id <- 2
+set_du_id <- 2
+set_g <- 2
+set_decision_rule_id <- c(2, 3, 4, 5)
+dr_shape <- c(1,5,10,9)
+show_data_value <- T
+
+set_fig1_number <- 1
+set_fig1_outcome <- data_baseline$r.o1.avg
+set_fig1_outcome_std <- data_baseline$r.o1.std
+set_fig1_t <- 1
+set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig1_t] * 100
+set_fig1_outcome_std <- set_fig1_outcome_std[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig1_t] * 100
+set_fig1_outcome_label <- paste0('Organization\'s Tendency to\nChoose Female Arm without Learning')
+set_fig1_hline <- NA
+set_fig1_hline_label <- NA
+
+# set_fig1_number <- 2
+# set_fig1_outcome <- data_baseline$r.01.avg + data_baseline$r.11.avg
+# set_fig1_t <- 101
+# set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig1_t] * 100
+# set_fig1_outcome_label <- paste0('Organization\'s Tendency to\nChoose Female Arm at t=',set_fig1_t-1)
+# set_fig1_hline = mean(data_baseline$r.10.avg[1, set_dp_id, set_du_id, , 1] + data_baseline$r.11.avg[1, set_dp_id, set_du_id, , 1]) * 100
+# set_fig1_hline_label = 'Solo Woman, No Learning'
+
+# set_fig1_number <- 3
+# set_fig1_outcome <- data_baseline$r.f1.avg * 100
+# set_fig1_outcome_std <- data_baseline$r.f1.std * 100
+# set_fig1_t <- 101
+# set_fig1_hline = mean(set_fig1_outcome[1, set_dp_id, set_du_id, , set_g, 1])
+# set_fig1_hline_label = 'Solo Woman, No Learning'
+# set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig1_t]
+# set_fig1_outcome_std <- set_fig1_outcome_std[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig1_t]
+# set_fig1_outcome_label <- paste0('Women\'s tendency to\nchoose Female Arm at t=',set_fig1_t-1)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( '(', paste(x, collapse = ','),')' )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+df_fig1_grand <- data.frame()
+for( dr in 1:length(set_decision_rule_id) ){
+  df_next <- data.frame(
+    dr = dr_label[set_decision_rule_id[dr]],
+    composition = composition_label,
+    outcome_label = set_fig1_outcome_label,
+    outcome_freq = set_fig1_outcome[dr,],
+    y_min = 75,
+    y_max = 100,
+    ci_min = set_fig1_outcome[dr,] - set_fig1_outcome_std[dr,] / sqrt(data_baseline$para.iteration),
+    ci_max = set_fig1_outcome[dr,] + set_fig1_outcome_std[dr,] / sqrt(data_baseline$para.iteration),
+    outcome_freq_rnd = ifelse(set_fig1_outcome[dr,]>3, round(set_fig1_outcome[dr,]), ''),
+    y_hline = set_fig1_hline,
+    y_hline_label = set_fig1_hline_label
+  )
+  df_fig1_grand <- rbind(df_fig1_grand, df_next)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  ymin = ci_min,
+  ymax = ci_max,
+  group = dr,
+  color = dr,
+  fill = dr,
+  shape = dr
+)
+
+fig1 <- ggplot(alpha = fig_alpha, data = df_fig1_grand, mapping = axes)
+
+if( !is.na(set_fig1_hline) ){
+  fig1 <- fig1 +
+    geom_hline(aes(yintercept = y_hline, linetype= y_hline_label), color = 'lightgray')
+}
+
+fig1 <- fig1 +
+  geom_line() +
+  geom_point(size = 4) +
+  # geom_ribbon(alpha = .25, linetype = 0) +  
+  scale_color_manual(values = c("#FAAB18", "#1380A1","#990000", "#588300")) +
+  scale_fill_manual(values = c("#FAAB18", "#1380A1","#990000", "#588300")) +
+  scale_shape_manual(values=dr_shape) +
+  scale_x_discrete('Organizational Composition (M, F)', labels=composition_label) +
+  ylab(set_fig1_outcome_label) +
+  theme_bw() +
+  theme(
+    text=element_text(size=label_size, color='black'),
+    axis.title=element_text(size=label_size, color='black'),
+    axis.text=element_text(size=tick_label_size, color='black'),
+    axis.text.x = element_text(color = 'black', angle=0),
+    legend.title = element_blank(),
+    legend.box="vertical",
+    legend.position = 'right'
+  )
+  # + guides(color=guide_legend(nrow=2,byrow=TRUE))
+
+if( show_data_value ){
+  fig1 <- fig1  +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=2, colour='black')
+}
+
+fig1
+
+fig1_params_label <- paste0(
+  'fig', set_fig1_number,
+  'dr', paste0(set_decision_rule_id, collapse = ","),
+  'dp', data_baseline$para.a.dp[set_dp_id],
+  'du', data_baseline$para.a.du[set_du_id],
+  't', set_fig1_t
+)
+
+ggsave(
+  paste0(fig_id, '_', fig1_params_label, '.png'),
+  plot = fig1,
+  units = 'in', 
+  width = 6,
+  height = 3,
+  dpi = fig_dpi
+)
+```
+
+
+
+## Figure 1R - Compare 4 DMSs in each panel, for different outcome variables, in a fixed environment
+```{r fig1_grand}
+txt_scale <- .8
+
+set_dp_id <- 2
+set_du_id <- 2
+set_decision_rule_id <- c(2, 3, 4, 5)
+dr_shape <- c(1,5,10,9)
+show_data_value <- T
+
+set_fig1_number <- 1
+set_fig1_outcome <- data_baseline$r.o1.avg
+set_fig1_outcome_std <- data_baseline$r.o1.std
+set_fig1_t <- 1
+set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , , set_fig1_t] * 100
+set_fig1_outcome_std <- set_fig1_outcome_std[set_decision_rule_id, set_dp_id, set_du_id, , , set_fig1_t] * 100
+set_fig1_outcome_label <- paste0('Organization\'s Tendency to\nChoose Female Arm without Learning')
+set_fig1_hline <- NA
+set_fig1_hline_label <- NA
+
+# set_fig1_number <- 2
+# set_fig1_outcome <- data_baseline$r.01.avg + data_baseline$r.11.avg
+# set_fig1_t <- 101
+# set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , , set_fig1_t] * 100
+# set_fig1_outcome_label <- paste0('Organization\'s Tendency to\nChoose Female Arm at t=',set_fig1_t-1)
+# set_fig1_hline = mean(data_baseline$r.10.avg[1, set_dp_id, set_du_id, , 1] + data_baseline$r.11.avg[1, set_dp_id, set_du_id, , , 1]) * 100
+# set_fig1_hline_label = 'Solo Woman, No Learning'
+
+# set_fig1_number <- 3
+# set_fig1_outcome <- data_baseline$r.f1.avg * 100
+# set_fig1_outcome_std <- data_baseline$r.f1.std * 100
+# set_fig1_t <- 101
+# set_fig1_outcome <- set_fig1_outcome[set_decision_rule_id, set_dp_id, set_du_id, , , set_fig1_t]
+# set_fig1_outcome_std <- set_fig1_outcome_std[set_decision_rule_id, set_dp_id, set_du_id, , , set_fig1_t]
+# set_fig1_outcome_label <- paste0('Women\'s tendency to\nchoose Female Arm at t=',set_fig1_t-1)
+# set_fig1_hline = mean(set_fig1_outcome[1, set_dp_id, set_du_id, , , 1])
+# set_fig1_hline_label = 'Solo Woman, No Learning'
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( '(', paste(x, collapse = ','),')' )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+g_label <- paste0('G=',data_baseline$para.a.g)
+g_label <- factor(g_label, levels = g_label)
+
+df_fig1_grand <- data.frame()
+for( dr in 1:length(set_decision_rule_id) ){
+  for( g in 1:data_baseline$para.g.g ){
+    df_next <- data.frame(
+      dr = dr_label[set_decision_rule_id[dr]],
+      composition = composition_label,
+      outcome_label = set_fig1_outcome_label,
+      outcome_freq = set_fig1_outcome[dr,,g],
+      g_label = g_label[g],
+      y_min = 75,
+      y_max = 100,
+      ci_min = set_fig1_outcome[dr,,g] - set_fig1_outcome_std[dr,,g] / sqrt(data_baseline$para.iteration),
+      ci_max = set_fig1_outcome[dr,,g] + set_fig1_outcome_std[dr,,g] / sqrt(data_baseline$para.iteration),
+      outcome_freq_rnd = ifelse(set_fig1_outcome[dr,,g]>3, round(set_fig1_outcome[dr,,g]), ''),
+      y_hline = set_fig1_hline,
+      y_hline_label = set_fig1_hline_label
+    )
+    df_fig1_grand <- rbind(df_fig1_grand, df_next)
+  }
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  ymin = ci_min,
+  ymax = ci_max,
+  group = dr,
+  color = dr,
+  fill = dr,
+  shape = dr
+)
+
+fig1 <- ggplot(alpha = fig_alpha, data = df_fig1_grand, mapping = axes)
+
+if( !is.na(set_fig1_hline) ){
+  fig1 <- fig1 +
+    geom_hline(aes(yintercept = y_hline, linetype= y_hline_label), color = 'lightgray')
+}
+
+fig1 <- fig1 +
+  facet_grid(.~g_label, scales = 'free_y', switch='y') +
+  geom_line() +
+  geom_point(size = 4) +
+  # geom_ribbon(alpha = .25, linetype = 0) +  
+  scale_color_manual(values = c("#FAAB18", "#1380A1","#990000", "#588300")) +
+  scale_fill_manual(values = c("#FAAB18", "#1380A1","#990000", "#588300")) +
+  scale_shape_manual(values=dr_shape) +
+  scale_x_discrete('Organizational Composition (M, F)', labels=composition_label) +
+  ylab(set_fig1_outcome_label) +
+  theme_bw() +
+  theme(
+    text=element_text(size=label_size * txt_scale, color='black'),
+    axis.title=element_text(size=label_size * txt_scale, color='black'),
+    axis.text=element_text(size=tick_label_size * txt_scale, color='black'),
+    strip.background = element_blank(),
+    strip.placement = 'outside',
+    axis.text.x = element_text(color = 'black', angle=0),
+    legend.title = element_blank(),
+    legend.box="vertical",
+    legend.position = 'bottom'
+  ) +
+  guides(color=guide_legend(nrow=2,byrow=TRUE))
+
+if( show_data_value ){
+  fig1 <- fig1  +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=2*txt_scale, colour='black')
+}
+
+fig1
+
+fig1_params_label <- paste0(
+  'fig', set_fig1_number, 'R',
+  'dr', paste0(set_decision_rule_id, collapse = ","),
+  'dp', data_baseline$para.a.dp[set_dp_id],
+  'du', data_baseline$para.a.du[set_du_id],
+  'g', data_baseline$para.a.g[set_g],
+  't', set_fig1_t
+)
+
+ggsave(
+  paste0(fig_id, '_', fig1_params_label, '.png'),
+  plot = fig1,
+  units = 'in', 
+  width = 6,
+  height = 3,
+  dpi = fig_dpi
+)
+```
+
+
+
+
+## Figure 4 - Compare Org decision with and without learning, for a fixed DMS, in a fixed environment
+```{r fig4_grand}
+set_dp_id <- 2
+set_du_id <- 2
+set_g <- 2
+set_decision_rule_id <- c(2, 3, 4, 5)
+dr_color <- c("#FAAB18", "#1380A1","#990000", "#588300")
+dr_shape <- c(1, 5, 10, 9)
+show_data_value <- T
+
+set_fig4_number <- 4
+# set_fig4_color <- dr_color[set_fig4_dr-1]
+
+set_fig4_outcome <- (data_baseline$r.01.avg + data_baseline$r.11.avg) * 100
+set_fig4_outcome_label <- paste0('Organization\'s Tendency to\nChoose Female Arm')
+set_fig4_ylim <- c(75, 100)
+
+set_fig4_outcome <- (data_baseline$r.pf.shr) * 100
+set_fig4_outcome_label <- paste0('All Votes Aligned with Preference\n(Share of Simulation Runs)')
+set_fig4_ylim <- c(5, 50)
+
+set_fig4_outcome <- (data_baseline$r.mc.shr) * 100
+set_fig4_outcome_label <- paste0('Mixed Winning Coalition\n(Share of Simulation Runs)')
+set_fig4_ylim <- c(5, 50)
+
+set_fig4_outcome <- 100 - (data_baseline$r.as.avg[,,,,,,1] + data_baseline$r.as.avg[,,,,,,2]) * 100
+set_fig4_outcome_label <- paste0('Vote Aligned with Preference\n(Share of Votes)')
+set_fig4_ylim <- c(5, 50)
+# 
+set_fig4_outcome <- (1 -data_baseline$r.as.avg[,,,,,,1]) * 100
+set_fig4_outcome_label <- paste0('Women\'s Vote Aligned with Preference\n(Share of Female Votes)')
+set_fig4_ylim <- c(5, 50)
+
+set_fig4_t <- 101
+set_fig4_outcome_with_learning <- set_fig4_outcome[set_decision_rule_id, set_dp_id, set_du_id, , set_g, set_fig4_t]
+set_fig4_outcome_without_learning <- set_fig4_outcome[set_decision_rule_id, set_dp_id, set_du_id, , set_g, 1]
+set_fig4_hline = mean(data_baseline$r.10.avg[1, set_dp_id, set_du_id, , set_g, 1] + data_baseline$r.11.avg[1, set_dp_id, set_du_id, , set_g, 1]) * 100
+set_fig4_hline_label = 'Solo Woman, No Learning'
+
+
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( '(', paste(x, collapse = ','),')' )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+learning_label <-
+  c('Without Learning', paste0('With Learning, t=', set_fig4_t))
+learning_label <- factor(learning_label, levels = learning_label)
+
+df_fig4 <- data.frame()
+for( dr in 1:length(set_decision_rule_id) ){
+  df_next <- data.frame(
+    dr = dr_label_2l[set_decision_rule_id[dr]],
+    color = dr_color[dr],
+    y_min = set_fig4_ylim[1],
+    y_max = set_fig4_ylim[2],
+    composition = composition_label,
+    outcome_label = set_fig4_outcome_label,
+    outcome_freq = set_fig4_outcome_without_learning[dr,],
+    outcome_freq_rnd = ifelse(set_fig4_outcome_without_learning[dr,]>3, round(set_fig4_outcome_without_learning[dr,]), ''),
+    learning_label = learning_label[1],
+    y_hline = set_fig4_hline,
+    y_hline_label = set_fig4_hline_label
+  )
+  df_fig4 <- rbind(df_fig4, df_next)
+  
+  df_next <- data.frame(
+    dr = dr_label_2l[set_decision_rule_id[dr]],
+    color = dr_color[dr],
+    y_min = set_fig4_ylim[1],
+    y_max = set_fig4_ylim[2],
+    composition = composition_label,
+    outcome_label = set_fig4_outcome_label,
+    outcome_freq = set_fig4_outcome_with_learning[dr,],
+    outcome_freq_rnd = ifelse(set_fig4_outcome_with_learning[dr,]>3, round(set_fig4_outcome_with_learning[dr,]), ''),
+    learning_label = learning_label[2],
+    y_hline = set_fig4_hline,
+    y_hline_label = set_fig4_hline_label
+  )
+  df_fig4 <- rbind(df_fig4, df_next)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = learning_label,
+  shape = learning_label,
+  color = dr
+)
+
+fig4 <- ggplot(alpha = fig_alpha, data = df_fig4, mapping = axes) +
+  facet_grid(.~dr, scales = 'free_y', switch='y') +
+  # geom_hline(aes(yintercept = y_hline, linetype = set_fig4_hline_label), color = 'lightgray')+
+  geom_line() +
+  geom_point(size = 4) +
+  scale_color_manual(values = c("#FAAB18", "#1380A1","#990000", "#588300")) +
+  scale_shape_manual(values=c(4, 1)) +
+  scale_x_discrete('Organizational Composition (M, F)', labels=composition_label) +
+  ylab(set_fig4_outcome_label) +
+  theme_bw() +
+  theme(
+    text=element_text(size=label_size, color='black'),
+    axis.title=element_text(size=label_size, color='black'),
+    axis.text=element_text(size=tick_label_size * .8, color='black'),
+    axis.text.x = element_text(color = 'black', angle=0),
+    strip.background = element_blank(),
+    strip.placement = 'outside',
+    legend.title = element_blank(),
+    legend.position = 'bottom'
+  )+
+  guides(color = "none")
+
+if( show_data_value ){
+  fig4 <- fig4  +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=2, colour='black')
+}
+
+fig4
+
+fig4_params_label <- paste0(
+  'fig', set_fig4_number,
+  'dr', paste0(set_decision_rule_id, collapse = ","),
+  'dp', data_baseline$para.a.dp[set_dp_id],
+  'du', data_baseline$para.a.du[set_du_id],
+  't', set_fig4_t
+)
+
+ggsave(
+  paste0(fig_id, '_', fig4_params_label, '.png'),
+  plot = fig4,
+  units = 'in', 
+  width = 6.5,
+  height = 3,
+  dpi = fig_dpi
+)
+```
+
+
+
+
+## Figure A GRAND
+```{r figa_grand}
+set_t_figa_grand <- 101
+set_w_learning_figa <- T
+set_w_learning_figa <- F
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 3)
+# set_decision_rule_id <- c(4, 5)
+# set_decision_rule_id <- c(2, 3)
+# set_decision_rule_id <- c(5, 7)
+
+# panel_label <- paste0('Panel 6', LETTERS[1:9])
+panel_label <- paste0('Panel 1', LETTERS[1:6])
+# panel_label <- paste0('Panel 10', LETTERS[1:20])
+panel_label <- factor(panel_label, levels=panel_label)
+
+set_figa_female_id <- data_baseline$para.a.m
+
+if( !set_w_learning_figa ){
+  set_t_figa_grand <- 1
+}
+
+get_figa_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(outcome_label~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label==paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figa_grand-1)), aes(yintercept=50), color='lightgray') +
+    geom_hline(aes(yintercept=y_hline_wo, linetype = 'Solo Female\'s Tendency\nto Vote for F. Arm\nwithout Postjoin Learning'), color='lightgray') +
+    # geom_hline(aes(yintercept=y_hline_w, linetype = 'Solo Female\'s Tendency\nto Vote for F. Arm\nwith Postjoin Learning'), color='lightgray') +
+    scale_linetype_manual(values = c('solid', 'dashed')) +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min)) +
+    geom_blank(aes(y=y_max)) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.title.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom',
+      # legend.box="vertical"
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      # scale_color_manual(values=z_color) +
+      # scale_shape_manual(values=z_shape) +
+      geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+outcome_label <- c(paste0('A female\'s tendency to\nvote for Female Arm at t=', set_t_figa_grand-1), paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figa_grand-1))
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_index <- 0
+df_figa_grand <- data.frame()
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_figa, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+for( dp_id in set_dp_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    share_00 <- data_baseline$r.00.avg[dr, dp_id, set_du_id, , set_t_figa_grand]
+    share_01 <- data_baseline$r.01.avg[dr, dp_id, set_du_id, , set_t_figa_grand]
+    share_10 <- data_baseline$r.10.avg[dr, dp_id, set_du_id, , set_t_figa_grand]
+    share_11 <- data_baseline$r.11.avg[dr, dp_id, set_du_id, , set_t_figa_grand]
+    
+    outcome_freq <- share_10+share_11
+    # outcome_freq <- share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 75,
+      y_max = 100,
+      # y_hline_wo = mean(data_baseline$r.10.avg[dr, dp_id, set_du_id, , 1] + data_baseline$r.11.avg[dr, dp_id, set_du_id, , 1])*100,
+      # y_hline_w = mean(data_baseline$r.10.avg[dr, dp_id, set_du_id, , set_t_figa_grand] + data_baseline$r.11.avg[dr, dp_id, set_du_id, , set_t_figa_grand])*100,
+      y_hline_wo = mean(data_baseline$r.10.avg[1, dp_id, set_du_id, , 1] + data_baseline$r.11.avg[1, dp_id, set_du_id, , 1])*100,
+      y_hline_w = mean(data_baseline$r.10.avg[1, dp_id, set_du_id, , set_t_figa_grand] + data_baseline$r.11.avg[1, dp_id, set_du_id, , set_t_figa_grand])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    # df_figa_grand <- rbind(df_figa_grand, df_next)
+
+    outcome_freq <- share_01+share_11
+    # outcome_freq <- share_11
+    df_next <- data.frame(
+      # panel_label = panel_label[panel_index+3],
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      # y_hline = NA,
+      # y_hline_wo = mean(data_baseline$r.10.avg[dr, dp_id, set_du_id, , 1] + data_baseline$r.11.avg[dr, dp_id, set_du_id, , 1])*100,
+      # y_hline_w = mean(data_baseline$r.10.avg[dr, dp_id, set_du_id, , set_t_figa_grand] + data_baseline$r.11.avg[dr, dp_id, set_du_id, , set_t_figa_grand])*100,
+      y_hline_wo = mean(data_baseline$r.10.avg[1, dp_id, set_du_id, , 1] + data_baseline$r.11.avg[1, dp_id, set_du_id, , 1])*100,
+      y_hline_w = mean(data_baseline$r.10.avg[1, dp_id, set_du_id, , set_t_figa_grand] + data_baseline$r.11.avg[1, dp_id, set_du_id, , set_t_figa_grand])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figa_grand <- rbind(df_figa_grand, df_next)
+  }
+}
+
+figa_grand <- get_figa_grand(
+  filename = paste0(
+    'figa_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figa_grand
+  ),
+  axes = axes, 
+  dat = df_figa_grand,
+  x_label = 'Organizational Composition (M, F)',
+  # x_label = 'Organizational Composition (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1", "#588300", "#588300"),
+  z_shape = rep(ifelse(set_w_learning_figa, 'o', 'x'), 2),
+  # y_limit = c(45, 100),
+  show_data_value = T,
+  width = 6.5,
+  # height = 5
+  height = 3
+)
+figa_grand
+```
+
+## Figure D 
+```{r figd_grand}
+set_t_figd_grand <- 101
+set_w_learning_figd <- T
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(2, 3)
+# set_decision_rule_id <- c(5, 7)
+
+panel_label <- paste0('Panel 2', LETTERS[1:20])
+# panel_label <- paste0('Panel 1', LETTERS[1:6])
+panel_label <- factor(panel_label, levels=panel_label)
+
+if( !set_w_learning_figd ){
+  set_t_figd_grand <- 1
+}
+
+get_figd_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(outcome_label~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label==paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figd_grand-1)), aes(yintercept=50), color='lightgray') +
+    geom_hline(aes(yintercept=y_hline, linetype = 'Avg. Share\nwithout Postjoin Learning'), color='lightgray') +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min)) +
+    geom_blank(aes(y=y_max)) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+outcome_label <- c(
+  paste0('Men\'s Unanimty\n(Share) at t=', set_t_figd_grand-1), 
+  paste0('Women\'s \n(Share) at t=',set_t_figd_grand-1),
+  paste0(', i.e., Consensus\n(Share) at t=',set_t_figd_grand-1)
+  )
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_index <- 0
+df_figd_grand <- data.frame()
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_figd, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+for( dp_id in set_dp_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    share_cs <- data_baseline$r.cs.shr[dr, dp_id, set_du_id, , set_t_figd_grand]
+    share_c0 <- data_baseline$r.c0.shr[dr, dp_id, set_du_id, , set_t_figd_grand]
+    share_c1 <- data_baseline$r.c1.shr[dr, dp_id, set_du_id, , set_t_figd_grand]
+
+    outcome_freq <- share_c0
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.c0.shr[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+
+    outcome_freq <- share_c1
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index+4],
+      # panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.c1.shr[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+    
+    
+    outcome_freq <- share_cs
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index+8],
+      # panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.c1.shr[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[3],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+  }
+}
+
+figd_grand <- get_figd_grand(
+  filename = paste0(
+    'figd_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figd_grand
+  ),
+  axes = axes, 
+  dat = df_figd_grand,
+  # x_label = 'Number of Representatives (M, F)',
+  x_label = 'Organizational Composition (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1", "#588300", "#588300"),
+  z_shape = rep(ifelse(set_w_learning_figd, 'o', 'x'), 2),
+  # y_limit = c(45, 100),
+  show_data_value = T,
+  width = 6.5,
+  height = 6.5
+  # height = 3
+)
+figd_grand
+```
+
+
+
+## Figure E Mixed Winning Coalition
+```{r fige_grand}
+set_t_fige_grand <- 101
+set_w_learning_fige <- T
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+
+panel_label <- paste0('Panel 2', LETTERS[1:20])
+panel_label <- factor(panel_label, levels=panel_label)
+
+if( !set_w_learning_fige ){
+  set_t_fige_grand <- 1
+}
+
+get_fige_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(dr~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label==paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_fige_grand-1)), aes(yintercept=50), color='lightgray') +
+    geom_hline(aes(yintercept=y_hline, linetype = 'Avg. Share\nwithout Postjoin Learning'), color='lightgray') +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min)) +
+    geom_blank(aes(y=y_max)) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    scale_y_continuous(paste0('Mixed Winning Coalition (Share)\nat t=', set_t_fige_grand-1)) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      strip.text.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_index <- 0
+df_fige_grand <- data.frame()
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_fige, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+for( dp_id in set_dp_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    share_mc <- data_baseline$r.mc.shr[dr, dp_id, set_du_id, , set_t_fige_grand]
+    
+    outcome_freq <- share_mc
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 75,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.mc.shr[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_fige_grand <- rbind(df_fige_grand, df_next)
+  }
+}
+
+fige_grand <- get_fige_grand(
+  filename = paste0(
+    'fige_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_fige_grand
+  ),
+  axes = axes, 
+  dat = df_fige_grand,
+  # x_label = 'Number of Representatives (M, F)',
+  x_label = 'Organizational Composition (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1", "#588300", "#588300"),
+  z_shape = rep(ifelse(set_w_learning_fige, 'o', 'x'), 2),
+  # y_limit = c(45, 100),
+  show_data_value = T,
+  width = 6.5,
+  height = 5
+)
+fige_grand
+```
+
+
+## Figure D Mixed
+```{r figd_grand}
+set_t_figd_grand <- 101
+set_w_learning_figd <- T
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(2, 3)
+# set_decision_rule_id <- c(5, 7)
+
+panel_label <- paste0('Panel 5', LETTERS[1:6])
+# panel_label <- paste0('Panel 1', LETTERS[1:6])
+panel_label <- factor(panel_label, levels=panel_label)
+
+if( !set_w_learning_figd ){
+  set_t_figd_grand <- 1
+}
+
+get_figd_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(outcome_label~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label==paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figd_grand-1)), aes(yintercept=50), color='lightgray') +
+    geom_hline(aes(yintercept=y_hline), color='lightgray') +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min)) +
+    geom_blank(aes(y=y_max)) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.title.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+outcome_label <- c(
+  paste0('Men\'s Unanimty (Share)\nat t=', set_t_figd_grand-1), 
+  paste0('Women\'s  (Share)\nat t=',set_t_figd_grand-1),
+  paste0(', i.e., Consensus (Share)\nat t=',set_t_figd_grand-1)
+  )
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_index <- 0
+df_figd_grand <- data.frame()
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_figd, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+for( dp_id in set_dp_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    share_c0 <- data_baseline$r.c0.avg[dr, dp_id, set_du_id, , set_t_figd_grand]
+    share_c1 <- data_baseline$r.c1.avg[dr, dp_id, set_du_id, , set_t_figd_grand]
+
+    outcome_freq <- share_c0
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 75,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.10.avg[dr, dp_id, set_du_id, , 1] + data_baseline$r.11.avg[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+
+    outcome_freq <- share_c1
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index+3],
+      # panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = 50,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+        
+    outcome_freq <- share_cs
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index+8],
+      # panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.c1.shr[dr, dp_id, set_du_id, , 1])*100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[3],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figd_grand <- rbind(df_figd_grand, df_next)
+  }
+}
+
+figd_grand <- get_figd_grand(
+  filename = paste0(
+    'figd_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figd_grand
+  ),
+  axes = axes, 
+  dat = df_figd_grand,
+  # x_label = 'Number of Representatives (M, F)',
+  x_label = 'Organizational Composition (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1", "#588300", "#588300"),
+  z_shape = rep(ifelse(set_w_learning_figd, 'o', 'x'), 2),
+  # y_limit = c(45, 100),
+  show_data_value = T,
+  width = 6.5,
+  height = 5
+  # height = 3
+)
+figd_grand
+```
+
+
+## Figure A GRAND DU
+```{r figa_grand}
+set_t_figa_grand <- 101
+set_w_learning_figa <- F
+set_dp_id <- c(1, 2, 3)
+set_dp_id <- 2
+set_du_id <- c(1, 2, 3)
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 7)
+
+# panel_label <- paste0('Panel 1', LETTERS[1:6])
+panel_label <- paste0('Panel 3', LETTERS[1:6])
+panel_label <- paste0('Panel A', 1:6)
+panel_label <- factor(panel_label, levels=panel_label)
+
+if( !set_w_learning_figa ){
+  set_t_figa_grand <- 1
+}
+
+get_figa_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(outcome_label~du_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label==paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figa_grand-1)), aes(yintercept=50), color='lightgray') +
+    geom_hline(aes(yintercept=y_hline), color='lightgray') +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min)) +
+    geom_blank(aes(y=y_max)) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.title.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text_repel(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+outcome_label <- c(paste0('A female\'s tendency to\nvote for Female Arm at t=', set_t_figa_grand-1), paste0('Organization\'s tendency to\nchoose Female Arm at t=',set_t_figa_grand-1))
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+du_label <- c(
+  paste0('DU=', data_baseline$para.a.du[1], ' (Indifferent Preference)'),
+  paste0('DU=', data_baseline$para.a.du[2], ' (Different Preference)'),
+  paste0('DU=', data_baseline$para.a.du[3], ' (Very Diffrent Preference)')
+)
+du_label <- factor(du_label, levels=du_label)
+
+panel_index <- 0
+df_figa_grand <- data.frame()
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_figa, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+for( du_id in set_du_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    share_00 <- data_baseline$r.00.avg[dr, set_dp_id, du_id, , set_t_figa_grand]
+    share_01 <- data_baseline$r.01.avg[dr, set_dp_id, du_id, , set_t_figa_grand]
+    share_10 <- data_baseline$r.10.avg[dr, set_dp_id, du_id, , set_t_figa_grand]
+    share_11 <- data_baseline$r.11.avg[dr, set_dp_id, du_id, , set_t_figa_grand]
+    
+    outcome_freq <- share_10+share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 75,
+      y_max = 100,
+      y_hline = mean(data_baseline$r.10.avg[dr, set_dp_id, du_id, , 1] + data_baseline$r.11.avg[dr, set_dp_id, du_id, , 1])*100,
+      du_label = du_label[du_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    # df_figa_grand <- rbind(df_figa_grand, df_next)
+
+    outcome_freq <- share_01+share_11
+    df_next <- data.frame(
+      # panel_label = panel_label[panel_index+3],
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      y_min = 0,
+      y_max = 100,
+      y_hline = 50,
+      du_label = du_label[du_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figa_grand <- rbind(df_figa_grand, df_next)
+  }
+}
+
+figa_grand <- get_figa_grand(
+  filename = paste0(
+    'figa_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'du', paste0(data_baseline$para.a.du[set_du_id], collapse = ","),
+    'dp', data_baseline$para.a.dp[set_dp_id],
+    't', set_t_figa_grand
+  ),
+  axes = axes, 
+  dat = df_figa_grand,
+  x_label = 'Number of Representatives (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1", "#588300", "#588300"),
+  z_shape = rep(ifelse(set_w_learning_figa, 'o', 'x'), 2),
+  # y_limit = c(0, 100),
+  show_data_value = T,
+  width = 6.5,
+  # height = 5
+  height = 3
+)
+figa_grand
+```
+
+
+## Figure C GRAND: Comparing Non-learning and Learning
+```{r figc_grand}
+set_t_figc_grand <- 101
+set_dp_id <- c(1, 2, 3)
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 7)
+
+get_figc_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  z_lty = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(row_label~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    geom_hline(data=filter(dat, outcome_label=='Org. Decison for Female Arm'), aes(yintercept=50), color='lightgray') +
+    geom_line(data = dat) +
+    scale_linetype_manual(values = z_lty) +
+    geom_point(data = dat, size = 4) +
+    geom_blank(aes(y=y_min))+
+    geom_blank(aes(y=y_max))+
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.title.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    ) +
+    guides(linetype = guide_legend(nrow = 2, byrow = T)) 
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = ol_label,
+  shape = ol_label,
+  linetype = ol_label,
+  color = ol_label
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+decision_rule_label <- dr_label[set_decision_rule_id]
+
+outcome_label <- c('Female Vote for Female Arm', 'Org. Decison for Female Arm')
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+learning_label <- c('Without Postjoin Learning', 'With Postjoin Learning')
+learning_label <- factor(learning_label, levels = learning_label)
+
+ol_label <- c(
+  paste(decision_rule_label[1], learning_label, sep = '\n'),
+  paste(decision_rule_label[2], learning_label, sep = '\n')
+)
+ol_label <- factor(ol_label, levels = ol_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_label <- paste0('Panel 3', LETTERS[1:12])
+panel_label <- factor(panel_label, levels=panel_label)
+
+panel_index <- 0
+df_figc_grand <- data.frame()
+
+for( dp_id_id in 1:length(set_dp_id) ){
+  for( dr_id in 1:length(set_decision_rule_id) ){
+    dr <- set_decision_rule_id[dr_id]
+    dp_id <- set_dp_id[dp_id_id]
+    panel_index <- dp_id_id + (dr_id-1)*3
+    
+    # No Postjoin Learning
+    share_00 <- data_baseline$r.00.avg[dr, dp_id, set_du_id, , 1]
+    share_01 <- data_baseline$r.01.avg[dr, dp_id, set_du_id, , 1]
+    share_10 <- data_baseline$r.10.avg[dr, dp_id, set_du_id, , 1]
+    share_11 <- data_baseline$r.11.avg[dr, dp_id, set_du_id, , 1]
+    
+    # outcome_freq <- share_10+share_11
+    # df_next <- data.frame(
+    #   panel_label = panel_label[panel_index],
+    #   y_min = 60,
+    #   y_max = 100,
+    #   dr = dr_label[dr],
+    #   p_label = p_label[dp_id],
+    #   composition = composition_label,
+    #   outcome_label = outcome_label[1],
+    #   learning_label = learning_label[1],
+    #   outcome_freq = outcome_freq * 100,
+    #   outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    # )
+    # df_figc_grand <- rbind(df_figc_grand, df_next)
+    
+    outcome_freq <- share_01+share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      # panel_label = panel_label[panel_index+3],
+      dr = dr_label[dr],
+      y_min = 0,
+      y_max = 100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      learning_label = learning_label[1],
+      ol_label = ol_label[(dr_id-1) * 2 + 1],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figc_grand <- rbind(df_figc_grand, df_next)
+    
+    # Postjoin Learning
+    share_00 <- data_baseline$r.00.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_01 <- data_baseline$r.01.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_10 <- data_baseline$r.10.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_11 <- data_baseline$r.11.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    
+    # outcome_freq <- share_10+share_11
+    # df_next <- data.frame(
+    #   panel_label = panel_label[panel_index],
+    #   dr = dr_label[dr],
+    #   y_min = 60,
+    #   y_max = 100,
+    #   p_label = p_label[dp_id],
+    #   composition = composition_label,
+    #   outcome_label = outcome_label[1],
+    #   learning_label = learning_label[2],
+    #   outcome_freq = outcome_freq * 100,
+    #   outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    # )
+    # df_figc_grand <- rbind(df_figc_grand, df_next)
+    
+    outcome_freq <- share_01+share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      # panel_label = panel_label[panel_index+3],
+      dr = dr_label[dr],
+      y_min = 0,
+      y_max = 100,
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      learning_label = learning_label[2],
+      ol_label = ol_label[(dr_id-1) * 2 + 2],
+      outcome_freq = outcome_freq * 100,
+      outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    )
+    df_figc_grand <- rbind(df_figc_grand, df_next)
+  }
+}
+
+df_figc_grand$row_label <- paste0(
+  df_figc_grand$dr,
+  '\n',
+  df_figc_grand$outcome_label
+)
+df_figc_grand$row_label <- factor(df_figc_grand$row_label, levels = unique(df_figc_grand$row_label))
+
+figc_grand <- get_figc_grand(
+  filename = paste0(
+    'figc_grand_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figc_grand
+  ),
+  axes = axes, 
+  dat = df_figc_grand,
+  x_label = 'Number of Representatives (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  # z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  # z_shape = c('x', 'o', '^'),
+  z_color = c("#FAAB18", "#FAAB18", "#1380A1", "#1380A1"),
+  z_shape = c('x', 'o', 'x', 'o'),
+  z_lty = c('dashed', 'solid', 'dashed', 'solid'),
+  # y_limit = c(0, 100),
+  show_data_value = T,
+  width = 6.5,
+  height = 5
+)
+figc_grand
+```
+
+
+
+
+
+
+
+## Figure C GRAND-DIFF: Comparing Non-learning and Learning
+```{r figc_grand}
+set_t_figc_grand <- 101
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 7)
+
+get_figc_grand <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  z_color = choice_color,
+  show_data_value = T,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(dr_label~p_label, scales = 'free_y', switch='y') +
+    geom_hline( aes(yintercept=0), color='lightgray') +
+    geom_line() +
+    geom_point(size = 4, shape=2) +
+    scale_color_manual(values=z_color) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    scale_y_continuous('Effect of Postjoin Learning\non Org. Tendency to Choose Female Arm At t=100') +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.text.y = element_text(color = 'black'),
+      strip.text.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    ) +
+    guides(linetype = guide_legend(nrow = 2, byrow = T)) 
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      geom_text(aes(label = outcome_freq_diff_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq_diff,
+  group = dr_label,
+  color = dr_label
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+decision_rule_label <- dr_label[set_decision_rule_id]
+
+outcome_label <- c('Effect of Postjoin Learning on\nFemale Vote for Female Arm', 'Effect of Postjoin Learning on\nOrg. Decison for Female Arm')
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+panel_label <- paste0('Panel 4', LETTERS[1:12])
+panel_label <- factor(panel_label, levels=panel_label)
+
+panel_index <- 0
+df_figc_grand_wo <- data.frame()
+df_figc_grand_w <- data.frame()
+
+for( dp_id_id in 1:length(set_dp_id) ){
+  for( dr_id in 1:length(set_decision_rule_id) ){
+    dr <- set_decision_rule_id[dr_id]
+    dp_id <- set_dp_id[dp_id_id]
+    panel_index <- dp_id_id + (dr_id-1)*3
+    
+    # No Postjoin Learning
+    share_00 <- data_baseline$r.00.avg[dr, dp_id, set_du_id, , 1]
+    share_01 <- data_baseline$r.01.avg[dr, dp_id, set_du_id, , 1]
+    share_10 <- data_baseline$r.10.avg[dr, dp_id, set_du_id, , 1]
+    share_11 <- data_baseline$r.11.avg[dr, dp_id, set_du_id, , 1]
+    
+    # outcome_freq <- share_10+share_11
+    # df_next <- data.frame(
+    #   panel_label = panel_label[panel_index],
+    #   y_min = 60,
+    #   y_max = 100,
+    #   dr = dr_label[dr],
+    #   p_label = p_label[dp_id],
+    #   composition = composition_label,
+    #   outcome_label = outcome_label[1],
+    #   learning_label = learning_label[1],
+    #   outcome_freq = outcome_freq * 100,
+    #   outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    # )
+    # df_figc_grand <- rbind(df_figc_grand, df_next)
+    
+    outcome_freq <- share_01+share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      # panel_label = panel_label[panel_index+3],
+      dr_label = dr_label[dr],
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100
+    )
+    df_figc_grand_wo <- rbind(df_figc_grand_wo, df_next)
+    
+    # Postjoin Learning
+    share_00 <- data_baseline$r.00.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_01 <- data_baseline$r.01.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_10 <- data_baseline$r.10.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    share_11 <- data_baseline$r.11.avg[dr, dp_id, set_du_id, , set_t_figc_grand]
+    
+    # outcome_freq <- share_10+share_11
+    # df_next <- data.frame(
+    #   panel_label = panel_label[panel_index],
+    #   dr = dr_label[dr],
+    #   y_min = 60,
+    #   y_max = 100,
+    #   p_label = p_label[dp_id],
+    #   composition = composition_label,
+    #   outcome_label = outcome_label[1],
+    #   learning_label = learning_label[2],
+    #   outcome_freq = outcome_freq * 100,
+    #   outcome_freq_rnd = ifelse(outcome_freq*100>3,round(outcome_freq*100),'')
+    # )
+    # df_figc_grand <- rbind(df_figc_grand, df_next)
+    
+    outcome_freq <- share_01+share_11
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      # panel_label = panel_label[panel_index+3],
+      dr_label = dr_label[dr],
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[2],
+      outcome_freq = outcome_freq * 100
+    )
+    df_figc_grand_w <- rbind(df_figc_grand_w, df_next)
+  }
+}
+
+df_figc_grand <- df_figc_grand_w
+df_figc_grand$outcome_freq_diff <- df_figc_grand_w$outcome_freq - df_figc_grand_wo$outcome_freq
+df_figc_grand$outcome_freq_diff_rnd <- round(df_figc_grand$outcome_freq_diff, digits = 1)
+
+df_figc_grand$row_label <- paste0(
+  df_figc_grand$dr,
+  '\n',
+  df_figc_grand$outcome_label
+)
+df_figc_grand$row_label <- factor(df_figc_grand$row_label, levels = unique(df_figc_grand$row_label))
+
+figc_grand <- get_figc_grand(
+  filename = paste0(
+    'figc_diff_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figc_grand
+  ),
+  axes = axes, 
+  dat = df_figc_grand,
+  x_label = 'Number of Representatives (M, F)',
+  x_tick_label = composition_label,
+  z_color = c("#FAAB18", "#1380A1"),
+  show_data_value = T,
+  width = 6.5,
+  height = 5
+)
+figc_grand
+```
+
+
+
+
+## Figure D Utility
+```{r figd_util}
+set_t_figd_util <- 101
+set_w_learning_figd <- F
+set_dp_id <- c(1, 2, 3)
+set_du_id <- 2
+set_decision_rule_id <- c(2, 3)
+set_decision_rule_id <- c(4, 5)
+
+if( !set_w_learning_figd ){
+  set_t_figd_util <- 1
+}
+
+panel_label <- paste0('Panel 6', LETTERS[1:9])
+panel_label <- factor(panel_label, levels=panel_label)
+
+get_figd_util <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label,
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(outcome_label~p_label, scales = 'free_y', switch='y') +
+    # geom_vline(xintercept=3, color='lightgray') +
+    # geom_hline(data=filter(dat, outcome_label=='Organization\'s tendency to\nchoose Female Arm at t=100'), aes(yintercept=50), color='lightgray') +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      axis.title.y = element_blank(),
+      strip.background = element_blank(),
+      strip.placement = 'outside',
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text(aes(label = outcome_freq_rnd), vjust = 1.5, size=3.5, colour='black') +
+      geom_text(aes(label = panel_label), x=-Inf, y=Inf, hjust = -.1, vjust = 1.1, size=4, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  group = dr,
+  color = dr,
+  shape = dr
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+outcome_label <- c('Average Utility Realized')
+outcome_label <- factor(outcome_label, levels=outcome_label)
+
+p_label <- c(
+  'P=.2 (Harsh Environment)',
+  'P=.5 (Moderate Environment)',
+  'P=.8 (Munificent Environment)'
+)
+p_label <- factor(p_label, levels=p_label)
+
+dr_label_adjust <- paste0(dr_label, ifelse(set_w_learning_figd, '\nwith Postjoin Learning', '\nwithout Postjoin Learning'))
+dr_label_adjust <- factor(dr_label_adjust, levels = dr_label_adjust)
+
+panel_index <- 0
+df_figd_util <- data.frame()
+
+for( dp_id in set_dp_id ){
+  panel_index <- panel_index+1
+  for( dr in set_decision_rule_id){
+    utility <- data_baseline$r.ut.avg[dr, dp_id, set_du_id, , set_t_figd_util]
+    df_next <- data.frame(
+      panel_label = panel_label[panel_index],
+      dr = dr_label_adjust[dr],
+      p_label = p_label[dp_id],
+      composition = composition_label,
+      outcome_label = outcome_label[1],
+      outcome_freq = utility,
+      outcome_freq_rnd = round(utility, 2)
+    )
+    df_figd_util <- rbind(df_figd_util, df_next)
+  }
+}
+
+figd_util <- get_figd_util(
+  filename = paste0(
+    'figd_util_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', paste0(data_baseline$para.a.dp[set_dp_id], collapse = ","),
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figd_util
+  ),
+  axes = axes, 
+  dat = df_figd_util,
+  x_label = 'Organizational Composition (M, F)',
+  x_tick_label = composition_label,
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  z_shape = c('x', 'o', '^'),
+  y_limit = c(0, 1),
+  show_data_value = T,
+  width = 6.5,
+  height = 3
+)
+figd_util
+```
+
+
+## Figure BL Belief Distribution
+```{r fig_bl}
+files_belief <- choose.files()
+
+y_limit <- c(0, 35)
+# y_limit <- c(0, 9)
+du_fig_bl <- .25
+util_fig_bl <- T
+  
+print_bd <- function(file_belief){
+  data_belief <- read.csv(file_belief)
+  
+  df_fig_bl <- data_belief
+  df_fig_bl <- df_fig_bl[df_fig_bl$id==max(df_fig_bl$id),] # Only a woman
+  
+  # df_fig_bl <- df_fig_bl[df_fig_bl$arm=='Female',]
+  # df_fig_bl <- df_fig_bl[df_fig_bl$arm=='Male',]
+  df_fig_bl$arm <- factor(df_fig_bl$arm, levels = c('Male', 'Female'))
+  
+  # p_fig_bl <- data_belief$p[1]
+  #   p_fig_bl <- data_belief$p[1] * (1+du_fig_bl)/2
+  #   p_fig_bl <- data_belief$p[1] * (1-du_fig_bl)/2
+  
+  if( util_fig_bl ){
+    df_fig_bl[df_fig_bl$arm=='Female',]$belief <- df_fig_bl[df_fig_bl$arm=='Female',]$belief * (1+du_fig_bl)/2
+    df_fig_bl[df_fig_bl$arm=='Female',]$belief0 <- df_fig_bl[df_fig_bl$arm=='Female',]$belief0 * (1+du_fig_bl)/2
+    df_fig_bl[df_fig_bl$arm=='Male',]$belief <- df_fig_bl[df_fig_bl$arm=='Male',]$belief * (1-du_fig_bl)/2
+    df_fig_bl[df_fig_bl$arm=='Male',]$belief0 <- df_fig_bl[df_fig_bl$arm=='Male',]$belief0 * (1-du_fig_bl)/2
+  }
+  
+  df_fig_bl <- rbind(
+    # data.frame(
+    #   time = 'before',
+    #   arm = df_fig_bl$arm,
+    #   type = df_fig_bl$typeOf,
+    #   belief = df_fig_bl$belief0
+    # )
+    # ,
+    data.frame(
+      time = 'after',
+      arm = df_fig_bl$arm,
+      type = df_fig_bl$typeOf,
+      belief = df_fig_bl$belief
+    )
+  )
+  df_fig_bl$time <- factor(df_fig_bl$time, levels = c('before', 'after'))
+  
+  get_fig_bl <- function(
+    filename,
+    axes, dat,
+    x_label = 'Belief',
+    y_label = 'P(Belief)',
+    z_color = c("#1380A1", "#990000"),
+    # z_color = c("#1380A1", "#588300", "#FAAB18"),
+    # z_color = c("white", "gray"),
+    # z_color = c("gray50"),
+    ylim = NULL,
+    width = fig_width, 
+    height = fig_height
+  ){
+    fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+      # geom_vline(xintercept=p_fig_bl, linetype='longdash', alpha= 1, size = .2, color = 'black') +
+      geom_density(alpha = .5, size = .1, color='black') +
+      scale_fill_manual(values = z_color) +
+      labs(x = x_label, y = y_label) +
+      xlim(c(0, 1)) +
+      theme_bw() +
+      theme(
+        text=element_text(size=label_size, color='black'),
+        # axis.title=element_text(size=label_size, color='black'),
+        axis.title=element_blank(),
+        # axis.text=element_text(size=tick_label_size, color='black'),
+        # axis.text.x = element_text(color = 'black', angle=0),
+        legend.title = element_blank(),
+        legend.position = 'none'
+        # legend.position = 'right'
+      )
+    if( !is.null(ylim) ){
+      fig <- fig + ylim(ylim)
+    }
+    if( fig_save ){
+      ggsave(
+        paste0(filename,'.png'),
+        plot = fig,
+        units = 'in', 
+        width = width,
+        height = height,
+        dpi = fig_dpi
+      )
+    }
+    return(fig)
+  }
+  
+  axes <- aes(
+    x = belief,
+    # fill = time
+    fill = arm
+  )
+  
+  fig_bl <- get_fig_bl(
+    filename = paste0(
+      'fig_bl_',
+      basename(file_belief)
+    ),
+    axes = axes, 
+    x_label = 'Belief',
+    y_label = 'Density',
+    ylim = y_limit,
+    dat = df_fig_bl,
+    width = 2,
+    height = 1.75
+  )
+  fig_bl
+}
+
+lapply(files_belief, FUN=print_bd)
+
+```
+
+## Figure BD Belief Distribution Difference
+```{r fig_bd}
+file_belief <- file.choose()
+data_belief <- read.csv(file_belief)
+
+y_limit <- c(0, 15)
+du_fig_bd <- .25
+
+df_fig_bd <- data_belief
+df_fig_bd <- df_fig_bd[df_fig_bd$id==max(df_fig_bd$id),]
+
+df_fig_bd$isFemaleArm = df_fig_bd$arm == 'Female'
+### isdu=f
+df_fig_bd[df_fig_bd$isFemaleArm,]$belief <- df_fig_bd[df_fig_bd$isFemaleArm,]$belief * (1+du_fig_bd)/2
+df_fig_bd[df_fig_bd$isFemaleArm,]$belief0 <- df_fig_bd[df_fig_bd$isFemaleArm,]$belief0 * (1+du_fig_bd)/2
+df_fig_bd[!df_fig_bd$isFemaleArm,]$belief <- df_fig_bd[!df_fig_bd$isFemaleArm,]$belief * (1-du_fig_bd)/2
+df_fig_bd[!df_fig_bd$isFemaleArm,]$belief0 <- df_fig_bd[!df_fig_bd$isFemaleArm,]$belief0 * (1-du_fig_bd)/2
+
+### isdu=t
+# df_fig_bd[df_fig_bd$isFemaleArm,]$belief <- df_fig_bd[df_fig_bd$isFemaleArm,]$belief * (1+du_fig_bd)
+# df_fig_bd[df_fig_bd$isFemaleArm,]$belief0 <- df_fig_bd[df_fig_bd$isFemaleArm,]$belief0 * (1+du_fig_bd)
+# df_fig_bd[!df_fig_bd$isFemaleArm,]$belief <- df_fig_bd[!df_fig_bd$isFemaleArm,]$belief * (1-du_fig_bd)
+# df_fig_bd[!df_fig_bd$isFemaleArm,]$belief0 <- df_fig_bd[!df_fig_bd$isFemaleArm,]$belief0 * (1-du_fig_bd)
+
+df_fig_bd <- rbind(
+  data.frame(
+    time = 'before',
+    belief = df_fig_bd$belief0,
+    arm = df_fig_bd$arm,
+    typeOf = df_fig_bd$typeOf
+  )
+  # ,
+  # data.frame(
+  #   time = 'after',
+  #   arm = df_fig_bd$arm,
+  #   belief = df_fig_bd$belief
+  # )
+)
+df_fig_bd$time <- factor(df_fig_bd$time, levels = c('before', 'after'))
+
+df_fig_bd$arm <- factor(df_fig_bd$arm, levels = c('Male', 'Female'))
+
+get_fig_bd <- function(
+  filename,
+  axes, dat,
+  x_label = 'Belief',
+  y_label = 'P(Belief)',
+  z_color = c("#1380A1", "#990000"),
+  # z_color = c("white", "gray"),
+  # z_color = c("gray50"),
+  ylim = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    # geom_vline(xintercept=p_fig_bd, linetype='longdash', alpha= 1, size = .2, color = 'black') +
+    geom_density(alpha = .5, size = .1, color='black',  alpha = .25) +
+    scale_fill_manual(values = z_color) +
+    labs(x = x_label, y = y_label) +
+    xlim(c(0, 1)) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      # axis.title=element_text(size=label_size, color='black'),
+      axis.title=element_blank(),
+      # axis.text=element_text(size=tick_label_size, color='black'),
+      # axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'none'
+      # legend.position = 'right'
+    )
+  if( !is.null(ylim) ){
+    fig <- fig + ylim(ylim)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = belief,
+  fill = arm
+)
+
+fig_bd <- get_fig_bd(
+  filename = paste0(
+    'fig_bd_',
+    basename(file_belief)
+  ),
+  axes = axes, 
+  x_label = 'Belief',
+  y_label = 'Density',
+  ylim = y_limit,
+  dat = df_fig_bd,
+  width = 2,
+  height = 1.75
+)
+fig_bd
+```
+
+## Figure ED Difference of Expected Utility Distribution
+```{r fig_ed}
+file_belief <- file.choose()
+data_belief <- read.csv(file_belief)
+
+y_limit <- c(0, 10)
+du_fig_ed <- .25
+
+df_fig_ed <- data_belief
+df_fig_ed <- df_fig_ed[df_fig_ed$typeOf == 1,]
+
+df_fig_ed$isFemaleArm = df_fig_ed$arm == 'Female'
+exp_f <- df_fig_ed[df_fig_ed$isFemaleArm,]$belief * (1+du_fig_ed)/2
+exp_m <- df_fig_ed[!df_fig_ed$isFemaleArm,]$belief * (1-du_fig_ed)/2
+exp0_f <- df_fig_ed[df_fig_ed$isFemaleArm,]$belief0 * (1+du_fig_ed)/2
+exp0_m <- df_fig_ed[!df_fig_ed$isFemaleArm,]$belief0 * (1-du_fig_ed)/2
+
+df_fig_ed <- df_fig_ed[df_fig_ed$isFemaleArm,]
+df_fig_ed <- df_fig_ed[df_fig_ed$typeOf==1,]
+df_fig_ed$diff_exp0 <- exp0_f - exp0_m
+df_fig_ed$diff_exp <- exp_f - exp_m
+
+v_fig_ed <- du_fig_ed * df_fig_ed$p[1]
+
+df_fig_ed <- rbind(
+  data.frame(
+    time = 'before',
+    diff = df_fig_ed$diff_exp0,
+    arm = df_fig_ed$arm,
+    typeOf = df_fig_ed$typeOf
+  )
+  # ,
+  # data.frame(
+  #   time = 'after',
+  #   diff = df_fig_ed$diff_exp,
+  #   arm = df_fig_ed$arm,
+  #   belief = df_fig_ed$belief
+  # )
+)
+df_fig_ed$time <- factor(df_fig_ed$time, levels = c('before', 'after'))
+
+get_fig_ed <- function(
+  filename,
+  axes, dat,
+  x_label = 'Belief',
+  y_label = 'P(Belief)',
+  z_color = c("#604060"),
+  # z_color = c("#1380A1", "#990000"),
+  # z_color = c("white", "gray"),
+  # z_color = c("gray50"),
+  ylim = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    geom_vline(xintercept=v_fig_ed, linetype='longdash', alpha= 1, size = .2, color = 'black') +
+    geom_density(alpha = .5, size = .1, color='black',  alpha = .25) +
+    scale_fill_manual(values = z_color) +
+    labs(x = x_label, y = y_label) +
+    xlim(c(-.5, .5)) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      # axis.title=element_text(size=label_size, color='black'),
+      axis.title=element_blank(),
+      # axis.text=element_text(size=tick_label_size, color='black'),
+      # axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'none'
+      # legend.position = 'right'
+    )
+  if( !is.null(ylim) ){
+    fig <- fig + ylim(ylim)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = diff,
+  fill = arm
+)
+
+fig_ed <- get_fig_ed(
+  filename = paste0(
+    'fig_ed_',
+    basename(file_belief)
+  ),
+  axes = axes, 
+  x_label = 'Belief',
+  y_label = 'Density',
+  ylim = y_limit,
+  dat = df_fig_ed,
+  width = 2,
+  height = 1.75
+)
+fig_ed
+```
+
+
+## Figure A FF FM MF MM
+```{r figa}
+set_t_figa <- 100
+set_dp_id <- 1
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 6)
+
+get_figa <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label, 
+  y_label = 'Share (%)',
+  y_limit = NULL,
+  z_color = choice_color,
+  show_data_value = T,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    # facet_grid(.~label ) +
+    facet_grid(.~label, scales = 'free_x') +
+    geom_bar(data = dat, position = position_stack(), stat='identity') +
+    scale_fill_manual(values=z_color) +
+    labs(x = x_label, y = y_label) +
+    labs(y = y_label) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'right'
+    )
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_fill_manual(values=z_color) +
+      geom_text(position = position_stack(vjust=.5), size = 2.5)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  label = ifelse(outcome_freq>3,round(outcome_freq),''), # For data value
+  fill = outcome
+)
+
+outcome_label <- c(
+  'Vote M & Org M ',
+  'Vote M & Org F',
+  'Vote F & Org M',
+  'Vote F & Org F'
+)
+
+outcome_label <- factor(outcome_label, levels = outcome_label)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+df_figa <- data.frame()
+# figa 
+for( dr in set_decision_rule_id){
+  share_00 <- data_baseline$r.00.avg[dr, set_dp_id, set_du_id, , set_t_figa]
+  share_01 <- data_baseline$r.01.avg[dr, set_dp_id, set_du_id, , set_t_figa]
+  share_10 <- data_baseline$r.10.avg[dr, set_dp_id, set_du_id, , set_t_figa]
+  share_11 <- data_baseline$r.11.avg[dr, set_dp_id, set_du_id, , set_t_figa]
+  df_next <- data.frame(
+    label = dr_label[dr],
+      composition = rep(composition_label, length(outcome_label)),
+      outcome = rep(outcome_label, each = data_baseline$para.g.m),
+      outcome_freq = c(
+        share_00, share_01, share_10, share_11
+      )
+  )
+  df_figa <- rbind(df_figa, df_next)
+}
+
+df_figa$label <- factor(df_figa$label, levels=dr_label)
+df_figa$outcome_freq <- df_figa$outcome_freq * 100
+df_figa <- df_figa[!df_figa$composition == '(6,0)',]
+composition_label <- composition_label[!composition_label=='(6,0)']
+
+
+figa <- get_figa(
+  filename = paste0(
+    'figa_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', data_baseline$para.a.dp[set_dp_id],
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figa
+  ),
+  axes = axes, 
+  dat = df_figa,
+  x_label = 'Number of Representatives (M, F)',
+  x_tick_label = composition_label,
+  y_label = 'Share (%)',
+  y_limit = c(0, 100+1),
+  z_color = viridis(4, alpha=.75),
+  show_data_value = T,
+  width = 6.5,
+  height = 2.4
+)
+figa
+```
+
+
+## Figure B Female Vote for F
+```{r figb}
+set_t_figb <- 100
+set_dp_id <- 1
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 6)
+
+get_figb <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label, 
+  y_label = 'Share (%)',
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    # facet_grid(.~label) +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    labs(x = x_label, y = y_label) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'right'
+    )
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text(vjust = 1.5, size=3.5, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  label = ifelse(outcome_freq>3,round(outcome_freq),''), # For data value
+  group = label,
+  color = label,
+  shape = label
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+df_figb <- data.frame()
+# figb 
+for( dr in set_decision_rule_id){
+  share_00 <- data_baseline$r.00.avg[dr, set_dp_id, set_du_id, , set_t_figb]
+  share_01 <- data_baseline$r.01.avg[dr, set_dp_id, set_du_id, , set_t_figb]
+  share_10 <- data_baseline$r.10.avg[dr, set_dp_id, set_du_id, , set_t_figb]
+  share_11 <- data_baseline$r.11.avg[dr, set_dp_id, set_du_id, , set_t_figb]
+  outcome_freq <- share_10+share_11
+  df_next <- data.frame(
+    label = dr_label[dr],
+    composition = composition_label,
+    outcome_freq = outcome_freq,
+    outcome_freq_rnd = ifelse(outcome_freq>3,round(outcome_freq),'')
+  )
+  df_figb <- rbind(df_figb, df_next)
+}
+
+df_figb$label <- factor(df_figb$label, levels=dr_label)
+df_figb$outcome_freq <- df_figb$outcome_freq * 100
+df_figb <- df_figb[!df_figb$composition == '(6,0)',]
+composition_label <- composition_label[!composition_label=='(6,0)']
+
+figb <- get_figb(
+  filename = paste0(
+    'figb_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', data_baseline$para.a.dp[set_dp_id],
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figb
+  ),
+  axes = axes, 
+  dat = df_figb,
+  x_label = 'Number of Representatives (M, F)',
+  # x_label = 'Ratio of Number / chance Weight (M, F)',
+  x_tick_label = composition_label,
+  y_label = 'Female Vote for Female Arm (%)',
+  y_limit = c(60, 100+1),
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  z_shape = c('x', 'o', '^'),
+  show_data_value = T,
+  width = 6.5,
+    height = 2.4
+)
+figb
+```
+
+
+## Figure C Org Vote for F
+```{r figc}
+set_t_figc <- 100
+set_dp_id <- 1
+set_du_id <- 2
+set_decision_rule_id <- c(2, 4)
+# set_decision_rule_id <- c(5, 6)
+
+get_figc <- function(
+  filename,
+  axes, dat,
+  x_label, x_tick_label, 
+  y_label = 'Share (%)',
+  y_limit = NULL,
+  z_color = choice_color,
+  z_shape = NULL,
+  show_data_value = T,
+  dat_label = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    # facet_grid(.~label) +
+    geom_line(data = dat) +
+    geom_point(data = dat, size = 4) +
+    scale_color_manual(values=z_color) +
+    scale_shape_manual(values=z_shape) +
+    labs(x = x_label, y = y_label) +
+    scale_x_discrete(x_label, labels=x_tick_label) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'right'
+    )
+  if( !is.null(y_limit) ){
+    fig <- fig + scale_y_continuous(limits=y_limit)
+  }
+  if( show_data_value ){
+    fig <- fig  +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      ) +
+      scale_color_manual(values=z_color) +
+      scale_shape_manual(values=z_shape) +
+      geom_text(vjust = 1.5, size=3.5, colour='black')
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = composition, 
+  y = outcome_freq,
+  label = ifelse(outcome_freq>3,round(outcome_freq),''), # For data value
+  group = label,
+  color = label,
+  shape = label
+)
+
+composition_label <-
+  apply(
+    data_baseline$para.a.comp, MARGIN = 1, FUN = function(x){
+      paste0( 
+        '(',
+        paste(
+          x,
+          collapse = ','
+        ),
+        ')'
+      )
+    }
+  )
+composition_label <- factor(composition_label, levels = composition_label)
+
+df_figc <- data.frame()
+# figc 
+for( dr in set_decision_rule_id){
+  share_00 <- data_baseline$r.00.avg[dr, set_dp_id, set_du_id, , set_t_figc]
+  share_01 <- data_baseline$r.01.avg[dr, set_dp_id, set_du_id, , set_t_figc]
+  share_10 <- data_baseline$r.10.avg[dr, set_dp_id, set_du_id, , set_t_figc]
+  share_11 <- data_baseline$r.11.avg[dr, set_dp_id, set_du_id, , set_t_figc]
+  outcome_freq <- share_01+share_11
+  df_next <- data.frame(
+    label = dr_label[dr],
+    composition = composition_label,
+    outcome_freq = outcome_freq,
+    outcome_freq_rnd = ifelse(outcome_freq>3,round(outcome_freq),'')
+  )
+  df_figc <- rbind(df_figc, df_next)
+}
+
+df_figc$label <- factor(df_figc$label, levels=dr_label)
+df_figc$outcome_freq <- df_figc$outcome_freq * 100
+df_figc <- df_figc[!df_figc$composition == '(6,0)',]
+composition_label <- composition_label[!composition_label=='(6,0)']
+
+figc <- get_figc(
+  filename = paste0(
+    'figc_',
+    'dr', paste0(set_decision_rule_id, collapse = ","),
+    'dp', data_baseline$para.a.dp[set_dp_id],
+    'du', data_baseline$para.a.du[set_du_id],
+    't', set_t_figc
+  ),
+  axes = axes, 
+  dat = df_figc,
+  x_label = 'Number of Representatives (M, F)',
+  # x_label = 'Ratio of Number / chance Weight (M, F)',
+  x_tick_label = composition_label,
+  y_label = 'Org. Decision\nto Choose Female Arm (%)',
+  y_limit = c(0, 100+1),
+  dat_label = outcome_freq_rnd,
+  z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  z_shape = c('x', 'o', '^'),
+  show_data_value = T,
+  width = 6.5,
+    height = 2.4
+)
+figc
+```
+
+
+
+## Figure D Belief Distribution of Female - Male v. Female Arm
+```{r figd}
+file_belief <- file.choose()
+data_belief <- read.csv(file_belief)
+y_limit <- NULL
+vline_intercept <- .5
+y_limit <- c(0, 9)
+set_m1 <- 1
+
+get_figd <- function(
+  filename,
+  axes, dat,
+  n_bin = 100,
+  x_label = 'Belief',
+  y_label = 'P(Belief)',
+  ylim = NULL,
+  z_color = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(~arm, switch = 'y') +
+    geom_vline(xintercept=vline_intercept, linetype='longdash', alpha=.5) +
+    geom_density() +
+    labs(x = x_label, y = y_label) +
+    xlim(c(0, 1)) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'right'
+    )
+  if( !is.null(ylim) ){
+    fig <- fig + ylim(ylim)
+  }
+  if( is.null(z_color) ){
+    fig <- fig + 
+      scale_fill_viridis(discrete = TRUE, alpha = .1) +
+      scale_color_viridis(discrete = TRUE)
+  }else{
+    fig <- fig + 
+      scale_fill_manual(values = alpha(z_color, .1), breaks=c('Before Learning', 'After Learning')) +
+      scale_color_manual(values = z_color, breaks=c('Before Learning', 'After Learning'))
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = belief,
+  color = time,
+  fill = time
+)
+
+df_figd <- data_belief
+df_figd <- df_figd[df_figd$typeOf=='Female',]
+df_figd <- df_figd[df_figd$m1==set_m1,]
+df_figd <- df_figd[
+    df_figd$id == 0 | df_figd$id == 5,
+]
+# df_figd <- df_figd[df_figd$isAgainst==1,]
+df_figd$arm <- factor(df_figd$arm, levels = c('Male Arm', 'Female Arm'))
+
+df_figd_t0 <- df_figd
+df_figd_t0$time = 'Before Learning'
+df_figd_t0$belief = df_figd_t0$belief0
+df_figd_t0$diff = df_figd_t0$diff0
+df_figd_t <- df_figd
+df_figd_t$time <- 'After Learning'
+df_figd <- rbind(df_figd_t0, df_figd_t)
+df_figd_t$time <- factor(df_figd_t$time, level=c('Before Learning', 'After Learning'))
+
+figd <- get_figd(
+  filename = paste0(
+    'figd_',
+    'm1_', set_m1,
+    basename(file_belief)
+  ),
+  axes = axes, 
+  x_label = 'Belief',
+  y_label = 'Density',
+  ylim = y_limit,
+  z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  n_bin = 50,
+  dat = df_figd,
+  width = 6.5,
+  height = 2
+)
+figd
+```
+
+## Figure D ALT Belief Distribution of Female - Diff
+```{r figd_alt}
+file_belief <- file.choose()
+data_belief <- read.csv(file_belief)
+set_m1 <- c(1, 3)
+y_limit <- NULL
+vline_intercept <- 0
+y_limit <- c(0, 5)
+
+get_figd_alt <- function(
+  filename,
+  axes, dat,
+  n_bin = 100,
+  x_label = 'Belief',
+  y_label = 'P(Belief)',
+  ylim = NULL,
+  z_color = NULL,
+  width = fig_width, 
+  height = fig_height
+){
+  fig <- ggplot(alpha = fig_alpha, data = dat, mapping = axes) +
+    facet_grid(~m, switch = 'y') +
+    geom_vline(xintercept=vline_intercept, linetype='longdash', alpha=.5) +
+    geom_density() +
+    labs(x = x_label, y = y_label) +
+    xlim(c(-1, 1)) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      axis.text.x = element_text(color = 'black', angle=0),
+      legend.title = element_blank(),
+      legend.position = 'right'
+    )
+  if( !is.null(ylim) ){
+    fig <- fig + ylim(ylim)
+  }
+  if( is.null(z_color) ){
+    fig <- fig + 
+      scale_fill_viridis(discrete = TRUE, alpha = .1) +
+      scale_color_viridis(discrete = TRUE)
+  }else{
+    fig <- fig + 
+      scale_fill_manual(values = alpha(z_color, .1), breaks=c('Before Learning', 'After Learning')) +
+      scale_color_manual(values = z_color, breaks=c('Before Learning', 'After Learning'))
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = width,
+      height = height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+axes <- aes(
+  x = diff,
+  color = time,
+  fill = time
+)
+
+df_figd_alt <- data_belief
+df_figd_alt <- df_figd_alt[df_figd_alt$typeOf=='Female',]
+df_figd_alt <- df_figd_alt[df_figd_alt$m1==set_m1,]
+df_figd_alt <- df_figd_alt[
+    df_figd_alt$id == 0 | df_figd_alt$id == 5,
+]
+
+# df_figd_alt <- df_figd_alt[df_figd_alt$isAgainst==1,]
+df_figd_alt$arm <- factor(df_figd_alt$arm, levels = c('Male Arm', 'Female Arm'))
+df_figd_alt$m <- factor(paste0('(',df_figd_alt$m0,', ', df_figd_alt$m1,')'), levels=c('(5, 1)', '(3, 3)'))
+
+
+df_figd_alt_t0 <- df_figd_alt
+df_figd_alt_t0$time = 'Before Learning'
+df_figd_alt_t0$belief = df_figd_alt_t0$belief0
+df_figd_alt_t0$diff = df_figd_alt_t0$diff0
+df_figd_alt_t <- df_figd_alt
+df_figd_alt_t$time <- 'After Learning'
+df_figd_alt <- rbind(df_figd_alt_t0, df_figd_alt_t)
+df_figd_alt_t$time <- factor(df_figd_alt_t$time, level=c('Before Learning', 'After Learning'))
+
+figd_alt <- get_figd_alt(
+  filename = paste0(
+    'figd_alt_',
+    'm1_', paste0(set_m1, collapse = ','),
+    basename(file_belief)
+  ),
+  axes = axes, 
+  x_label = 'Difference b/w Belief about Male v. Female Arms\' Payoff Prob.',
+  y_label = 'Density',
+  ylim = y_limit,
+  z_color = c("#FAAB18", "#1380A1","#990000", "#588300"),
+  n_bin = 50,
+  dat = df_figd_alt,
+  width = 6.5,
+  height = 2
+)
+figd_alt
+```
+
+
+## Figure 6 Longitudinal Pattern of False Pos/Neg
+```{r fig4}
+set_t_range_fig6 <- 1:data_baseline$para.time
+set_dr_id <- 1:4
+set_dp_id <- 3
+set_du_id <- 2
+set_m_id <- 3
+
+
+get_fig_6 <- function(
+  filename,
+  axes, dat,
+  y_label,
+  x_limit, 
+  y_limit,
+  z_color = NULL, 
+  z_lty = NULL,
+  fig_width = 6.5,
+  fig_height = 2
+){
+  fig <- ggplot(alpha = fig_alpha) +
+    geom_line(data = dat, mapping = axes, alpha = .8) +
+    facet_grid(label_y~label_x, scales="free") +
+    labs(x = 'Time Period (t)', y = y_label) +
+    # scale_y_continuous(limits=y_limit) +
+    scale_x_continuous(limits=x_limit) +
+    theme_bw() +
+    theme(
+      text=element_text(size=label_size, color='black'),
+      axis.title=element_text(size=label_size, color='black'),
+      axis.text=element_text(size=tick_label_size, color='black'),
+      legend.title = element_blank(),
+      legend.position = 'bottom'
+    )
+  if( !is.null(z_color) ){
+    fig <- fig +
+      scale_color_manual(values = z_color)
+  }
+  if( !is.null(z_lty) ){
+    fig <- fig +
+      scale_linetype_manual(values = z_lty)
+  }
+  if( fig_save ){
+    ggsave(
+      paste0(fig_id, '_', filename,'.png'),
+      plot = fig,
+      units = 'in', 
+      width = fig_width,
+      height = fig_height,
+      dpi = fig_dpi
+    )
+  }
+  return(fig)
+}
+
+
+axes <- aes(
+  x = time, 
+  y = outcome_value,
+  color = outcome
+)
+
+outcome_label <- c(
+  'Male to Male Arm',
+  'Male to Female Arm',
+  'Female to Male Arm',
+  'Female to Female Arm'
+)
+outcome_label <- factor(outcome_label, levels = outcome_label)
+
+outcome_label2 <- c(
+  'False Positive',
+  'False Negative'
+)
+outcome_label2 <- factor(outcome_label2, levels = outcome_label2)
+
+df_fig6 <- data.frame()
+# fig6 
+for( dr in set_dr_id){
+  df_next <- data.frame(
+    label_x = dr_label[dr],
+    label_y = outcome_label2[1],
+    time = rep(set_t_range_fig6, length(outcome_label)),
+    outcome = rep(outcome_label, each = length(set_t_range_fig6)),
+    outcome_value = c(data_baseline$r.fp.avg[dr, set_dp_id, set_du_id, set_m_id, set_t_range_fig6, c(1,data_baseline$para.a.m[set_m_id]), ])
+  )
+  df_fig6 <- rbind(df_fig6, df_next)
+  
+  df_next <- data.frame(
+    label_x = dr_label[dr],
+    label_y = outcome_label2[2],
+    time = rep(set_t_range_fig6, length(outcome_label)),
+    outcome = rep(outcome_label, each = length(set_t_range_fig6)),
+    outcome_value = c(data_baseline$r.fn.avg[dr, set_dp_id, set_du_id, set_m_id, set_t_range_fig6, c(1,data_baseline$para.a.m[set_m_id]), ])
+  )
+  df_fig6 <- rbind(df_fig6, df_next)
+}
+
+fig6 <- get_fig_6(
+  filename = paste0(
+    'fig6',
+    'p', data_baseline$para.a.dp[set_dp_id],
+    'du', data_baseline$para.a.du[set_du_id],
+    'm', data_baseline$para.a.m[set_m_id],
+    'm1', data_baseline$para.a.m1[set_m_id]
+  ),
+  axes = axes, dat = df_fig6,
+  y_label = 'Error (Belief - Reality)',
+  x_limit = c(1, max(set_t_range_fig6)), 
+  y_limit = c(0, 1),
+  fig_width = 6.5,
+  fig_height = 5,
+  z_col = viridis(4),
+)
+fig6
+```
+
+
+```{r grid}
+imf <- function(bm) 1.67*bm
+iff <- function(bm) .6*bm
+p <- 
+  ggplot() +
+  geom_function(fun = imf, aes(colour = "A Man\n(I_MF)")) +
+  geom_function(fun = iff, aes(colour = "A Woman\n(I_FF)")) +
+  xlab('Belief about M arm') +
+  ylab('Minimum Belief about F arm\nTo Choose F arm') +
+  xlim(c(0,1)) +
+  ylim(c(0,1)) +
+  guides(colour = guide_legend(title = "")) +
+  theme_bw()
+p
+```
+
+
+```{r tail}
+data_baseline$r.ci.avg[3, 3, 2, 4, 100, , ]
+data_baseline$r.ci.avg[3, 4, 2, 4, 100, , ]
+
+```
