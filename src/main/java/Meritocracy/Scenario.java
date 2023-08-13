@@ -1,6 +1,8 @@
 package Meritocracy;
 
 import static org.apache.commons.math3.util.FastMath.exp;
+
+import java.util.Arrays;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
@@ -105,7 +107,10 @@ class Scenario {
     beliefNumerator = new double[m][n];
     beliefDenominator = new double[m][n];
     belief = new double[m][n];
+    beliefRank = new double[m][n];
     power = new double[m];
+    individualDecision = new int[m];
+    isSuccessfulIndividual = new boolean[m];
     double powerSum = 0;
 
     for (int member : memberIndexArray) {
@@ -159,11 +164,13 @@ class Scenario {
       }
     }
     for (int member : memberIndexArray) {
+      beliefRank[member] = getRank(belief[member]);
       power[member] /= powerSum;
     }
     powerRank = getRank(power);
     setIndividualDecision();
     setOrganizationalDecision();
+    updateIndividualCompetence();
   }
 
   void stepForward() {
@@ -407,7 +414,10 @@ class Scenario {
           secondMaxCount = countVote[alternative];
         }
       }
-      // Secound Round
+      // Second Round
+      if( secondBestChoice == -1 ){
+        return bestChoice;
+      }
       countVote = new double[2];
       for (int member : memberIndexArray) {
         if (belief[member][bestChoice] > belief[member][secondBestChoice]) {

@@ -7,10 +7,10 @@ public class Main {
   static final long TIC = System.currentTimeMillis();
 
   static final boolean IS_GREEDY = true;
-  static final boolean IS_PREJOIN_RANDOM = true;
-  static final boolean IS_PREJOIN_GREEDY = true;
+  static final boolean IS_PREJOIN_RANDOM = false;
+  static final boolean IS_PREJOIN_GREEDY = false;
 
-  static final int ITERATION = 10_000;
+  static final int ITERATION = 100_000;
   static final int TIME = 100 + 1;
 
   static final int N = 5; // Number of alternatives
