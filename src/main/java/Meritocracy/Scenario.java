@@ -272,6 +272,13 @@ class Scenario {
       competenceBestMatching[member] = beliefRank[member][0] == realityRank[0] ? 1 : 0;
       competenceRankCorrelation[member] = pc.correlation(beliefRank[member], realityRank);
       competenceBeliefCorrelation[member] = pc.correlation(belief[member], reality);
+//      if (Double.isNaN(competenceRankCorrelation[member])) {
+//        System.out.println(competenceRankCorrelation[member]);
+        System.out.println(Arrays.toString(beliefRank[member]));
+        System.out.println(Arrays.toString(belief[member]));
+        System.out.println();
+//        System.out.println(Arrays.toString(realityRank));
+//      }
     }
 
     rankBestMatching = getRank(competenceBestMatching);
@@ -415,7 +422,7 @@ class Scenario {
         }
       }
       // Second Round
-      if( secondBestChoice == -1 ){
+      if (secondBestChoice == -1) {
         return bestChoice;
       }
       countVote = new double[2];
@@ -476,16 +483,15 @@ class Scenario {
 
   double[] getRank(double[] arr) {
     double[] rank = new double[arr.length];
+    double[] mixer = new double[arr.length];
+    for (int focal = 0; focal < arr.length; focal++) {
+      mixer[focal] = r.nextDouble();
+    }
     for (int focal = 0; focal < arr.length; focal++) {
       double rankOf = 0;  // Start rank from 0
       for (int target = 0; target < arr.length; target++) {
-//        if (arr[target] < arr[focal] || (arr[target] == arr[focal] && target < focal)) {
-//          rankOf++;
-//        }
-        if (arr[target] < arr[focal]) {
+        if (arr[target] < arr[focal] || (arr[target] == arr[focal] && mixer[target] < mixer[focal])) {
           rankOf++;
-        } else if (arr[target] == arr[focal]) {
-          rankOf += .5;
         }
       }
       rank[focal] = rankOf;
