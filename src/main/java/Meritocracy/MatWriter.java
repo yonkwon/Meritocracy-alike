@@ -45,8 +45,6 @@ public class MatWriter {
     try {
       Mat5.newMatFile()
           .addArray("para_is_greedy", Mat5.newScalar(Main.IS_GREEDY ? 1 : 0))
-          .addArray("para_is_prejoin_random", Mat5.newScalar(Main.IS_PREJOIN_RANDOM ? 1 : 0))
-          .addArray("para_is_prejoin_greedy", Mat5.newScalar(Main.IS_PREJOIN_GREEDY ? 1 : 0))
 
           .addArray("para_iteration", Mat5.newScalar(Main.ITERATION))
           .addArray("para_time", Mat5.newScalar(Main.TIME))

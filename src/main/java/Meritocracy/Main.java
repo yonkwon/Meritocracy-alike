@@ -2,15 +2,13 @@ package Meritocracy;
 
 public class Main {
 
-  static final String ID = "MCFirst";
+  static final String ID = "Meritocracy";
 
   static final long TIC = System.currentTimeMillis();
 
   static final boolean IS_GREEDY = true;
-  static final boolean IS_PREJOIN_RANDOM = false;
-  static final boolean IS_PREJOIN_GREEDY = false;
 
-  static final int ITERATION = 1000;
+  static final int ITERATION = 100_000;
   static final int TIME = 300 + 1;
 
   static final int N = 5; // Number of alternatives
@@ -23,8 +21,6 @@ public class Main {
   static String FILENAME = ID
       + "Greed" + IS_GREEDY
       + (!IS_GREEDY ? ("TAU" + TAU) : "")
-      + "PrejoinRand" + IS_PREJOIN_RANDOM
-      + "PrejoinGreed" + IS_PREJOIN_GREEDY
       + "I" + ITERATION
       + "T" + TIME
       + "N" + N

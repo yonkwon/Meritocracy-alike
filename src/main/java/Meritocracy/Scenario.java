@@ -115,49 +115,10 @@ class Scenario {
       double[] beliefDenominatorIndividual = beliefDenominator[member];
       power[member] = r.nextDouble();
       powerSum += power[member];
-      if (Main.IS_PREJOIN_RANDOM) {
-        for (int choice : alternativeIndexArray) {
-          beliefNumeratorIndividual[choice] = r.nextInt(3);
-          beliefDenominatorIndividual[choice] = 2D;
-        }
-      } else {
-        for (int choice : alternativeIndexArray) {
-          // One success one failure
-          beliefNumeratorIndividual[choice] = 1D;
-          beliefDenominatorIndividual[choice] = 2D;
-        }
-      }
-      if (Main.IS_PREJOIN_GREEDY) {
-        for (int choice : alternativeIndexArray) {
-          if (beliefDenominatorIndividual[choice] != 0) {
-            belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
-          } else {
-            belief[member][choice] = .5D;
-          }
-        }
-        for (int sample = 0; sample < g; sample++) {
-          int choice = transformBelief2Decision(belief[member]);
-          if (r.nextDouble() < reality[choice]) {
-            beliefNumeratorIndividual[choice]++;
-          }
-          beliefDenominatorIndividual[choice]++;
-          belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
-        }
-      } else {
-        for (int prejoin = 0; prejoin < g; prejoin++) {
-          int choice = r.nextInt(n);
-          if (r.nextDouble() < reality[choice]) {
-            beliefNumeratorIndividual[choice]++;
-          }
-          beliefDenominatorIndividual[choice]++;
-        }
-        for (int choice : alternativeIndexArray) {
-          if (beliefDenominatorIndividual[choice] != 0) {
-            belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
-          } else {
-            belief[member][choice] = .5D;
-          }
-        }
+      for( int choice : alternativeIndexArray ){
+        beliefDenominatorIndividual[choice] += g;
+        beliefNumeratorIndividual[choice] = r.nextInt(g);
+        belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
       }
     }
     for (int member : memberIndexArray) {
