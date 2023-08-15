@@ -115,9 +115,14 @@ class Scenario {
       double[] beliefDenominatorIndividual = beliefDenominator[member];
       power[member] = r.nextDouble();
       powerSum += power[member];
+      for( int prejoinExperience = 0; prejoinExperience < g; prejoinExperience ++ ){
+        int choice = r.nextInt(g);
+        beliefNumeratorIndividual[choice] += r.nextBoolean()?1:0;
+        beliefDenominatorIndividual[choice] ++;
+      }
       for( int choice : alternativeIndexArray ){
-        beliefDenominatorIndividual[choice] += g;
-        beliefNumeratorIndividual[choice] = r.nextInt(g);
+        beliefNumeratorIndividual[choice] += 1;
+        beliefDenominatorIndividual[choice] += 2;
         belief[member][choice] = beliefNumeratorIndividual[choice] / beliefDenominatorIndividual[choice];
       }
     }
@@ -135,6 +140,7 @@ class Scenario {
     setIndividualDecision();
     setOrganizationalDecision();
     doLearning();
+    updateIndividualCompetence();
     setOutcome();
   }
 

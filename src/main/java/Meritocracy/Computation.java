@@ -3,6 +3,7 @@ package Meritocracy;
 import static org.apache.commons.math3.util.FastMath.pow;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -198,8 +199,8 @@ public class Computation {
 
     void run() {
       Scenario s = new Scenario(decisionRuleIndex, n, m, g);
+      s.setOutcome();
       for (int t = 0; t < Main.TIME; t++) {
-        s.setOutcome();
         synchronized (this) {
           averageCompetenceBestMatchingAVGAtomicPart[t].addAndGet(s.averageCompetenceBestMatching);
           averageCompetenceBestMatchingSTDAtomicPart[t].addAndGet(pow(s.averageCompetenceBestMatching, 2));
