@@ -10,12 +10,12 @@ public class Main {
   static final boolean IS_PREJOIN_RANDOM = false;
   static final boolean IS_PREJOIN_GREEDY = false;
 
-  static final int ITERATION = 100_000;
-  static final int TIME = 100 + 1;
+  static final int ITERATION = 1000;
+  static final int TIME = 300 + 1;
 
   static final int N = 5; // Number of alternatives
-  static final int M = 5; // Number of individuals
-  static final int G = 5; // Length of Prejoin Learning
+  static final int M = 30; // Number of individuals
+  static final int G = 25; // Length of Prejoin Learning
 
   static final double TAU = .01;
   static final int DECISION_STRUCTURE_LENGTH = 5;
