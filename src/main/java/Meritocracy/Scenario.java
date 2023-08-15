@@ -5,12 +5,10 @@ import static org.apache.commons.math3.util.FastMath.exp;
 import java.util.Arrays;
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.commons.math3.random.RandomGenerator;
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 class Scenario {
 
   RandomGenerator r;
-  PearsonsCorrelation pc;
 
   int decisionRuleIndex;
   DecisionRule decisoinRule;
@@ -58,8 +56,7 @@ class Scenario {
       int g
   ) {
     r = new MersenneTwister();
-    pc = new PearsonsCorrelation();
-
+    
     this.decisionRuleIndex = decisionRuleIndex;
     setDecisionRule(decisionRuleIndex);
 
@@ -270,15 +267,8 @@ class Scenario {
 
     for (int member : memberIndexArray) {
       competenceBestMatching[member] = beliefRank[member][0] == realityRank[0] ? 1 : 0;
-      competenceRankCorrelation[member] = pc.correlation(beliefRank[member], realityRank);
-      competenceBeliefCorrelation[member] = pc.correlation(belief[member], reality);
-//      if (Double.isNaN(competenceRankCorrelation[member])) {
-//        System.out.println(competenceRankCorrelation[member]);
-        System.out.println(Arrays.toString(beliefRank[member]));
-        System.out.println(Arrays.toString(belief[member]));
-        System.out.println();
-//        System.out.println(Arrays.toString(realityRank));
-//      }
+      competenceRankCorrelation[member] = getCorrelation(beliefRank[member], realityRank);
+      competenceBeliefCorrelation[member] = getCorrelation(belief[member], reality);
     }
 
     rankBestMatching = getRank(competenceBestMatching);
@@ -290,9 +280,9 @@ class Scenario {
     averageCompetenceBestMatching = getAverage(competenceBestMatching);
     averageCompetenceRankCorrelation = getAverage(competenceRankCorrelation);
     averageCompetenceBeliefCorrelation = getAverage(competenceBeliefCorrelation);
-    meritocracyScoreBestMatching = pc.correlation(rankBestMatching, powerRank);
-    meritocracyScoreRankCorrelation = pc.correlation(rankRankCorrelation, powerRank);
-    meritocracyScoreBeliefCorrelation = pc.correlation(rankBeliefCorrelation, powerRank);
+    meritocracyScoreBestMatching = getCorrelation(rankBestMatching, powerRank);
+    meritocracyScoreRankCorrelation = getCorrelation(rankRankCorrelation, powerRank);
+    meritocracyScoreBeliefCorrelation = getCorrelation(rankBeliefCorrelation, powerRank);
   }
 
   public interface DecisionRule {
@@ -507,4 +497,21 @@ class Scenario {
     return average / (double) arr.length;
   }
 
+  double getCorrelation(double[] arr1, double[] arr2) {
+    int n = arr1.length;
+    double sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0, sumY2 = 0.0;
+    for (int i = 0; i < n; i++) {
+      double xi = arr1[i];
+      double yi = arr2[i];
+      sumX += xi;
+      sumY += yi;
+      sumXY += xi * yi;
+      sumX2 += xi * xi;
+      sumY2 += yi * yi;
+    }
+    double numerator = n * sumXY - sumX * sumY;
+    double denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    // If the denominator is zero, return 0 as correlation is zero
+    return (denominator != 0) ? numerator / denominator : 0;
+  }
 }
