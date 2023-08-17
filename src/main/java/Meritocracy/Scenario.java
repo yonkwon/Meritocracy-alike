@@ -116,7 +116,7 @@ class Scenario {
       power[member] = r.nextDouble();
       powerSum += power[member];
       for( int prejoinExperience = 0; prejoinExperience < g; prejoinExperience ++ ){
-        int choice = r.nextInt(g);
+        int choice = r.nextInt(n);
         beliefNumeratorIndividual[choice] += r.nextBoolean()?1:0;
         beliefDenominatorIndividual[choice] ++;
       }

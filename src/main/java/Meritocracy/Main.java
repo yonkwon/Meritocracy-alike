@@ -8,12 +8,12 @@ public class Main {
 
   static final boolean IS_GREEDY = true;
 
-  static final int ITERATION = 1;
+  static final int ITERATION = 100_000;
   static final int TIME = 300 + 1;
 
   static final int N = 5; // Number of alternatives
-  static final int M = 30; // Number of individuals
-  static final int G = 3; // Length of Prejoin Learning
+  static final int M = 10; // Number of individuals
+  static final int G = 5; // Length of Prejoin Learning
 
   static final double TAU = .01;
   static final int DECISION_STRUCTURE_LENGTH = 5;

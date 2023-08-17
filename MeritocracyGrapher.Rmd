@@ -46,8 +46,7 @@ dms_label <- ordered(dms_label, levels=dms_label)
 ```{r fig1}
 set_fig1_dms <- c(1, 2, 3, 4, 5)
 set_fig1_t <- data$para.time
-set_fig1_t <- 1
-dms_shape <- c(1,5,10,9)
+# set_fig1_t <- 1
 
 set_fig1_y_label <- 'Average Competence'
 set_fig1_outcome_bm <- data$r.abm.avg[set_fig1_dms, set_fig1_t]
@@ -59,7 +58,7 @@ set_fig1_outcome_rc_label <- 'Rank Correlation'
 set_fig1_outcome_bc <- data$r.abc.avg[set_fig1_dms, set_fig1_t]
 set_fig1_outcome_bc_std <- data$r.abc.std[set_fig1_dms, set_fig1_t]
 set_fig1_outcome_bc_label <- 'Belief Correlation'
-
+# 
 # set_fig1_y_label <- 'Meritocracy Score'
 # set_fig1_outcome_bm <- data$r.mbm.avg[set_fig1_dms, set_fig1_t]
 # set_fig1_outcome_bm_std <- data$r.mbm.std[set_fig1_dms, set_fig1_t]
